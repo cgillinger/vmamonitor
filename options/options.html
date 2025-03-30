@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VMA Monitor - Inställningar</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>VMA Monitor Inställningar</h1>
+    </header>
+    
+    <div class="options-form">
+      <div class="option-group">
+        <label for="region-select">Region för övervakning:</label>
+        <select id="region-select">
+          <option value="00">Hela Sverige</option>
+          <optgroup label="Län">
+            <option value="01">Stockholms län</option>
+            <option value="03">Uppsala län</option>
+            <option value="04">Södermanlands län</option>
+            <option value="05">Östergötlands län</option>
+            <option value="06">Jönköpings län</option>
+            <option value="07">Kronobergs län</option>
+            <option value="08">Kalmar län</option>
+            <option value="09">Gotlands län</option>
+            <option value="10">Blekinge län</option>
+            <option value="12">Skåne län</option>
+            <option value="13">Hallands län</option>
+            <option value="14">Västra Götalands län</option>
+            <option value="17">Värmlands län</option>
+            <option value="18">Örebro län</option>
+            <option value="19">Västmanlands län</option>
+            <option value="20">Dalarnas län</option>
+            <option value="21">Gävleborgs län</option>
+            <option value="22">Västernorrlands län</option>
+            <option value="23">Jämtlands län</option>
+            <option value="24">Västerbottens län</option>
+            <option value="25">Norrbottens län</option>
+          </optgroup>
+          <!-- Kommuner can be added here -->
+        </select>
+        <p class="hint">Välj region för att övervaka VMA-meddelanden. Välj "Hela Sverige" för att övervaka alla regioner.</p>
+      </div>
+      
+      <div class="option-group">
+        <label for="check-interval">Uppdateringsintervall:</label>
+        <div class="info-text">VMA-API:et kontrolleras var 5:e minut</div>
+      </div>
+      
+      <div class="actions">
+        <button id="save-btn" type="button">Spara inställningar</button>
+        <div id="status" class="hidden"></div>
+      </div>
+    </div>
+    
+    <footer>
+      <p>VMA Monitor v1.0 - Använder <a href="https://vmaapi.sr.se/" target="_blank">Sveriges Radio VMA API</a></p>
+    </footer>
+  </div>
+  
+  <script src="options.js"></script>
+</body>
+</html>
