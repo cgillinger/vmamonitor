@@ -17,7 +17,7 @@ VMA (Viktigt Meddelande till Allmänheten) är ett varningssystem som används i
   - 🟠 Orange: Allvarligt VMA
   - 🔴 Röd: Mycket allvarligt VMA
   - 🔵 Blå: Testläge aktivt
-- **Notifieringar**: Popup-notifieringar vid nya VMA
+- **Notifieringar**: Vid nya VMA
 - **Regionfiltrering**: Välj specifikt län att övervaka
 - **Detaljerad information**: Visar fullständig information om aktiva VMA
 - **Kvittering**: Möjlighet att kvittera (tysta) varningar när du sett dem
