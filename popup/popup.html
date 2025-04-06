@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="sv">
+<html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,6 +10,7 @@
   <header>
     <h1>VMA Notifieringar</h1>
     <div class="actions">
+      <button id="language-btn" title="Språk/Language" class="lang-toggle" data-lang="sv"><span>🌐</span></button>
       <button id="refresh-btn" title="Uppdatera"><span>⟳</span></button>
       <button id="options-btn" title="Inställningar"><span>⚙</span></button>
     </div>
@@ -53,7 +54,10 @@
 
   <footer>
     <button id="test-mode-btn">Testa VMA</button>
-    <div class="status">Status: <span id="status-text">Normal</span></div>
+    <div class="status">
+      Status: <span id="status-text">Normal</span>
+      <span id="version-text" class="version-info">v1.1</span>
+    </div>
   </footer>
 
   <template id="alert-template">

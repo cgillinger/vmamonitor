@@ -7,6 +7,7 @@ const STARTUP_DELAY = 15000; // milliseconds - wait 15 seconds before first chec
 const DEBUG = false; // Set to false in production
 const OLD_ALERT_THRESHOLD = 3 * 24 * 60 * 60 * 1000; // 3 days in milliseconds
 const MAX_HISTORY_ITEMS = 3; // Antal VMA som ska sparas i historiken
+const VERSION = '1.1'; // Current extension version
 
 // Track blinking state
 let blinkingTimer = null;
@@ -69,15 +70,29 @@ const isEdge = navigator.userAgent.includes("Edg/");
 logger.info('Running in ' + (isEdge ? 'Microsoft Edge' : 'Chrome/Other Chromium browser'));
 
 // Initialize on install
-chrome.runtime.onInstalled.addListener(() => {
-  logger.important('VMA Monitor installed/updated');
+chrome.runtime.onInstalled.addListener((details) => {
+  logger.important(`VMA Monitor installed/updated to v${VERSION}`);
+  
+  // Check if this is an update and perform migration if needed
+  if (details.reason === 'update') {
+    logger.important(`Updated from version ${details.previousVersion} to ${VERSION}`);
+    performMigration(details.previousVersion);
+  }
+  
   // Set default options
-  chrome.storage.sync.get(['geoCode', 'testMode'], (result) => {
+  chrome.storage.sync.get(['geoCode', 'testMode', 'preferredLanguage'], (result) => {
     if (!result.geoCode) {
       chrome.storage.sync.set({ geoCode: '00' }); // Default to all Sweden
     }
     if (result.testMode === undefined) {
       chrome.storage.sync.set({ testMode: false });
+    }
+    if (result.preferredLanguage === undefined) {
+      // Detect browser language or default to Swedish
+      const browserLang = chrome.i18n.getUILanguage();
+      const preferredLanguage = browserLang.startsWith('en') ? 'en' : 'sv';
+      chrome.storage.sync.set({ preferredLanguage });
+      logger.important(`Setting default language to: ${preferredLanguage} based on browser UI ${browserLang}`);
     }
   });
 
@@ -98,9 +113,30 @@ chrome.runtime.onInstalled.addListener(() => {
   chrome.alarms.create('cleanOldAlerts', { periodInMinutes: 1440 }); // 1440 minutes = 24 hours
 });
 
+// Perform migration when updating from old version
+async function performMigration(previousVersion) {
+  try {
+    // Migration for pre-1.1 (adding language support)
+    if (previousVersion && parseFloat(previousVersion) < 1.1) {
+      logger.important("Performing migration to v1.1 (adding language support)");
+      
+      // Add preferredLanguage setting if not already existing
+      const { preferredLanguage } = await chrome.storage.sync.get(['preferredLanguage']);
+      if (preferredLanguage === undefined) {
+        const browserLang = chrome.i18n.getUILanguage();
+        const newPreferredLanguage = browserLang.startsWith('en') ? 'en' : 'sv';
+        await chrome.storage.sync.set({ preferredLanguage: newPreferredLanguage });
+        logger.important(`Migration: Added preferredLanguage setting: ${newPreferredLanguage}`);
+      }
+    }
+  } catch (error) {
+    logger.error("Error during migration", error);
+  }
+}
+
 // Wait for the browser to be ready before doing initial checks
 chrome.runtime.onStartup.addListener(() => {
-  logger.important('VMA Monitor starting up');
+  logger.important(`VMA Monitor v${VERSION} starting up`);
   // Set a delayed initial check to ensure browser windows are available
   setTimeout(() => {
     browserReady = true;
@@ -264,34 +300,39 @@ function startTwoBadgeBlink(iconType, isSilent = false) {
 }
 
 // Create a detailed notification for a VMA - Edge-optimerad
-function createDetailedNotification(alert) {
+async function createDetailedNotification(alert) {
   if (!alert || !alert.info || alert.info.length === 0) {
     return;
   }
   
-  const info = alert.info[0];
-  const title = info.event || 'Viktigt Meddelande till Allmänheten';
-  let message = info.description || 'Ingen detaljerad information tillgänglig.';
-  
-  // Trim message if too long (Edge can have different limits)
-  if (message.length > 100) {
-    message = message.substring(0, 97) + '...';
-  }
-  
-  // Add area information if available
-  let areas = '';
-  if (info.area && info.area.length > 0) {
-    areas = info.area.map(a => a.areaDesc).join(', ');
-  }
-  
   try {
+    // Get preferred language
+    const { preferredLanguage = 'sv' } = await chrome.storage.sync.get(['preferredLanguage']);
+    
+    // Find best matching info based on language preference
+    let info = findBestMatchingInfo(alert.info, preferredLanguage);
+    
+    const title = info.event || chrome.i18n.getMessage('notificationTitle');
+    let message = info.description || chrome.i18n.getMessage('noDetailedInfo');
+    
+    // Trim message if too long (Edge can have different limits)
+    if (message.length > 100) {
+      message = message.substring(0, 97) + '...';
+    }
+    
+    // Add area information if available
+    let areas = '';
+    if (info.area && info.area.length > 0) {
+      areas = info.area.map(a => a.areaDesc).join(', ');
+    }
+    
     // Create detailed notification with Edge-specific options
     chrome.notifications.create('vma-alert-details', {
       type: 'basic',
       iconUrl: 'icons/lamp-red-128.png',
       title: title,
       message: message,
-      contextMessage: areas ? `Berörda områden: ${areas}` : '',
+      contextMessage: areas ? `${chrome.i18n.getMessage('affectedAreas')}: ${areas}` : '',
       priority: 2,
       requireInteraction: true,  // Notification stays until dismissed
       silent: false  // Make sure sound plays in Edge
@@ -299,6 +340,37 @@ function createDetailedNotification(alert) {
   } catch (error) {
     logger.error('Error creating notification:', error);
   }
+}
+
+// Find the best matching info object based on language preference
+function findBestMatchingInfo(infoArray, preferredLanguage) {
+  if (!infoArray || infoArray.length === 0) {
+    return {}; // Return empty object if no info available
+  }
+  
+  // For Swedish preference
+  if (preferredLanguage === 'sv') {
+    // First try to find Swedish info
+    const svInfo = infoArray.find(info => info.language === 'sv-SE');
+    if (svInfo) return svInfo;
+    
+    // If no Swedish found, use English if available
+    const enInfo = infoArray.find(info => info.language === 'en-US');
+    if (enInfo) return enInfo;
+  } 
+  // For English preference
+  else if (preferredLanguage === 'en') {
+    // First try to find English info
+    const enInfo = infoArray.find(info => info.language === 'en-US');
+    if (enInfo) return enInfo;
+    
+    // If no English found, fall back to Swedish
+    const svInfo = infoArray.find(info => info.language === 'sv-SE');
+    if (svInfo) return svInfo;
+  }
+  
+  // If no match by language or fallback, just return the first info
+  return infoArray[0];
 }
 
 // Check if we should auto-open the popup for severe alerts
@@ -339,11 +411,13 @@ async function checkIfShouldAutoOpenPopup(alerts) {
     
     // Also create a basic notification encouraging to click the icon
     try {
+      const { preferredLanguage = 'sv' } = await chrome.storage.sync.get(['preferredLanguage']);
+      
       chrome.notifications.create('vma-alert', {
         type: 'basic',
         iconUrl: 'icons/lamp-red-128.png',
-        title: 'VIKTIGT MEDDELANDE',
-        message: 'Viktigt Meddelande till Allmänheten (VMA). Klicka på VMA-ikonen i verktygsfältet för mer information.',
+        title: chrome.i18n.getMessage('importantMessage'),
+        message: chrome.i18n.getMessage('clickForMoreInfo'),
         priority: 2,
         silent: false
       });
@@ -418,19 +492,36 @@ function createTestAlert() {
     status: "Test",
     msgType: "Alert",
     scope: "Public",
-    info: [{
-      language: "sv-SE",
-      category: "Safety",
-      event: "Test VMA",
-      urgency: "Expected",
-      severity: "Minor",
-      certainty: "Likely",
-      senderName: "VMA Monitor Extension",
-      description: "Detta är ett test av VMA Monitor. Vid ett riktigt VMA skulle viktig information visas här.",
-      area: [{
-        areaDesc: "Test Region"
-      }]
-    }]
+    info: [
+      // Swedish info
+      {
+        language: "sv-SE",
+        category: "Safety",
+        event: "Test VMA",
+        urgency: "Expected",
+        severity: "Minor",
+        certainty: "Likely",
+        senderName: "VMA Monitor Extension",
+        description: "Detta är ett test av VMA Monitor. Vid ett riktigt VMA skulle viktig information visas här.",
+        area: [{
+          areaDesc: "Test Region"
+        }]
+      },
+      // English info (added in v1.1)
+      {
+        language: "en-US",
+        category: "Safety",
+        event: "Test Emergency Alert",
+        urgency: "Expected",
+        severity: "Minor",
+        certainty: "Likely",
+        senderName: "VMA Monitor Extension",
+        description: "This is a test of the VMA Monitor. In case of a real emergency, important information would be displayed here.",
+        area: [{
+          areaDesc: "Test Region"
+        }]
+      }
+    ]
   };
 }
 
@@ -468,20 +559,18 @@ function isTestAlert(alert) {
   
   // Kontrollera beskrivning
   if (alert.info && alert.info.length > 0) {
-    const description = alert.info[0].description || '';
-    if (description.includes('TEST') || 
-        description.includes('test') || 
-        description.includes('Test')) {
-      return true;
-    }
-    
-    // Kontrollera eventtitel
-    const event = alert.info[0].event || '';
-    if (event.includes('TEST') || 
-        event.includes('test') || 
-        event.includes('Test')) {
-      return true;
-    }
+    // Check all info objects
+    return alert.info.some(info => {
+      const description = info.description || '';
+      const event = info.event || '';
+      
+      return description.includes('TEST') || 
+             description.includes('test') || 
+             description.includes('Test') ||
+             event.includes('TEST') || 
+             event.includes('test') || 
+             event.includes('Test');
+    });
   }
   
   return false;
@@ -648,6 +737,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ success: true });
     });
     return true;
+  } else if (message.action === 'getVersion') {
+    // Return the current version
+    sendResponse({ version: VERSION });
+    return false; // No async response needed
   }
 });
 
@@ -706,8 +799,8 @@ chrome.notifications.onClicked.addListener((notificationId) => {
       chrome.notifications.create('vma-popup-guide', {
         type: 'basic',
         iconUrl: 'icons/lamp-red-128.png',
-        title: 'Klicka på VMA-ikonen',
-        message: 'Klicka på den röda VMA-ikonen i verktygsfältet för att se detaljerad information.',
+        title: chrome.i18n.getMessage('clickVmaIcon'),
+        message: chrome.i18n.getMessage('clickIconDetails'),
         priority: 2
       });
     }

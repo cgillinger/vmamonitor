@@ -24,6 +24,20 @@ VMA (Viktigt Meddelande till Allmänheten) är ett varningssystem som används i
 - **Testläge**: Möjlighet att testa funktionaliteten utan faktiska VMA
 - **VMA-historik**: Sparar automatiskt de tre senaste avslutade VMA-meddelandena
 - **Automatisk datarensning**: Rensar gamla kvitterade varningar efter 3 dagar
+- **Språkstöd**: Stöd för både svenska och engelska VMA-meddelanden
+
+## Versionsinformation
+
+### Version 1.1 (April 2025)
+- Stöd för VMA på engelska via Sveriges Radios nya översättningar (från november 2024)
+- Möjlighet att välja föredraget språk mellan svenska och engelska
+- Förbättrad användargränssnitt med språkväljare
+- Versionshantering med migrations-stöd
+
+### Version 1.0 (Ursprunglig version)
+- Grundläggande funktionalitet för övervakning av VMA
+- Stöd för svenska VMA-meddelanden
+- Regionfiltrering och testläge
 
 ## Installation
 
@@ -48,11 +62,13 @@ Efter installation dyker en VMA-ikon upp i Edge:s verktygsfält. Som standard ä
 - **Manuell uppdatering**: Klicka på uppdateringsikonen (⟳) i popup-fönstret
 - **Öppna inställningar**: Klicka på kugghjulsikonen (⚙) i popup-fönstret
 - **Se historik**: Växla till "Historik"-fliken för att se tidigare VMA-meddelanden
+- **Byt språk**: Klicka på språkikonen (🌐) för att växla mellan svenska och engelska
 
 ### Inställningar:
 1. Öppna inställningar genom att klicka på kugghjulsikonen
 2. Välj vilket län du vill övervaka (standardvärde är "Hela Sverige")
-3. Klicka på "Spara inställningar"
+3. Välj föredraget språk (svenska eller engelska)
+4. Klicka på "Spara inställningar"
 
 ### Testläge:
 1. Klicka på "Testa VMA" i popup-fönstrets nedre del
@@ -71,12 +87,23 @@ Efter installation dyker en VMA-ikon upp i Edge:s verktygsfält. Som standard ä
 3. För varje VMA visas när det utfärdades och när det upphörde
 4. Endast riktiga VMA lagras i historiken (inte testmeddelanden)
 
+### Språkstöd:
+1. VMA-meddelanden visas på ditt föredragna språk när översättningar finns tillgängliga
+2. Från november 2024 tillhandahåller Sveriges Radio engelska översättningar för VMA
+3. Du kan byta språk direkt i popup-fönstret genom att klicka på språkikonen (🌐)
+4. Om ingen översättning finns tillgänglig på ditt föredragna språk visas det på det tillgängliga språket
+
 ## Tekniska detaljer
 
 ### Datakällor
 - Tillägget använder Sveriges Radios officiella VMA API för att hämta information:
   - Produktions-API: `https://vmaapi.sr.se/api/v2/alerts`
   - Test-API: `https://vmaapi.sr.se/testapi/v2/alerts`
+
+### Språkstöd
+- Från november 2024 tillhandahåller Sveriges Radio engelska översättningar för VMA
+- Tillägget stöder både svenska (`sv-SE`) och engelska (`en-US`) info-objekt från API:et
+- Användare kan ställa in sitt föredragna språk och tillägget kommer att söka efter den bästa matchningen
 
 ### Datarensning
 - Kvitterade VMA-meddelanden rensas automatiskt efter 3 dagar
@@ -96,7 +123,7 @@ Efter installation dyker en VMA-ikon upp i Edge:s verktygsfält. Som standard ä
 
 VMA Notifieringar värnar om din integritet:
 - Ingen personlig information samlas in
-- Endast regionval sparas i webbläsarens synkroniserade lagring
+- Endast regionval och språkpreferens sparas i webbläsarens synkroniserade lagring
 - VMA-historik och kvitteringsinformation sparas endast lokalt i din webbläsare
 - Inga tredjepartsverktyg för analys eller spårning
 - All kommunikation sker via säker HTTPS

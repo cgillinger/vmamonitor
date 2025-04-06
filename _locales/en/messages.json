@@ -1,0 +1,178 @@
+{
+  "extensionName": {
+    "message": "VMA Alerts - Swedish Emergency System",
+    "description": "Name of the extension"
+  },
+  "extensionDescription": {
+    "message": "Monitors and displays Swedish emergency alerts (VMA) from Swedish Radio in real-time",
+    "description": "Description of the extension"
+  },
+  "popupTitle": {
+    "message": "VMA Alerts",
+    "description": "Title in popup window"
+  },
+  "activeTab": {
+    "message": "Active Alerts",
+    "description": "Text for active alerts tab"
+  },
+  "historyTab": {
+    "message": "History",
+    "description": "Text for history tab"
+  },
+  "loadingText": {
+    "message": "Loading VMA information...",
+    "description": "Text shown when data is loading"
+  },
+  "noAlertsText": {
+    "message": "No active VMA alerts at the moment.",
+    "description": "Text shown when there are no active alerts"
+  },
+  "lastCheckedText": {
+    "message": "Last checked:",
+    "description": "Text before last checked time"
+  },
+  "acknowledgeButtonText": {
+    "message": "Acknowledge Alert",
+    "description": "Text on acknowledge button"
+  },
+  "acknowledgeInfoText": {
+    "message": "Acknowledge to stop blinking notification but keep the red warning icon",
+    "description": "Explanatory text for acknowledgment"
+  },
+  "acknowledgedConfirmation": {
+    "message": "Alert Acknowledged",
+    "description": "Confirmation when alert has been acknowledged"
+  },
+  "testModeButtonText": {
+    "message": "Test VMA",
+    "description": "Text on test mode button"
+  },
+  "deactivateTestText": {
+    "message": "Deactivate Test",
+    "description": "Text to deactivate test mode"
+  },
+  "statusText": {
+    "message": "Status:",
+    "description": "Text before status display"
+  },
+  "normalStatusText": {
+    "message": "Normal",
+    "description": "Text for normal status"
+  },
+  "activeStatusText": {
+    "message": "Active VMA",
+    "description": "Text for active VMA status"
+  },
+  "settingsTitle": {
+    "message": "VMA Alerts - Settings",
+    "description": "Title on settings page"
+  },
+  "regionLabel": {
+    "message": "Monitoring region:",
+    "description": "Label for region selection"
+  },
+  "regionHint": {
+    "message": "Select a region to monitor VMA alerts. Choose \"All Sweden\" to monitor all regions.",
+    "description": "Help text for region selection"
+  },
+  "languageLabel": {
+    "message": "Preferred language:",
+    "description": "Label for language selection"
+  },
+  "languageHint": {
+    "message": "Select your preferred language for VMA alerts. English translations will be shown when available.",
+    "description": "Help text for language selection"
+  },
+  "intervalLabel": {
+    "message": "Update interval:",
+    "description": "Label for update interval"
+  },
+  "intervalInfo": {
+    "message": "The VMA API is checked every 5 minutes",
+    "description": "Information about update interval"
+  },
+  "saveButton": {
+    "message": "Save settings",
+    "description": "Text on save button"
+  },
+  "savedMessage": {
+    "message": "Settings saved!",
+    "description": "Confirmation message when settings are saved"
+  },
+  "errorMessage": {
+    "message": "Could not save settings",
+    "description": "Error message when saving settings"
+  },
+  "notificationTitle": {
+    "message": "Important Public Announcement",
+    "description": "Default title for VMA notifications"
+  },
+  "defaultVMATitle": {
+    "message": "Important Public Announcement",
+    "description": "Default title for VMA when no specific title exists"
+  },
+  "testVMA": {
+    "message": "Test Alert",
+    "description": "Text for test VMA"
+  },
+  "importantMessage": {
+    "message": "IMPORTANT MESSAGE",
+    "description": "Title for important message notification"
+  },
+  "clickForMoreInfo": {
+    "message": "Important Public Announcement (VMA). Click on the VMA icon in the toolbar for more information.",
+    "description": "Message instructing the user to click on the icon"
+  },
+  "clickVmaIcon": {
+    "message": "Click on VMA icon",
+    "description": "Prompt to click on the icon"
+  },
+  "clickIconDetails": {
+    "message": "Click on the red VMA icon in the toolbar to see detailed information.",
+    "description": "Details on how to find more information"
+  },
+  "noDetailedInfo": {
+    "message": "No detailed information available.",
+    "description": "Text when no detailed information exists"
+  },
+  "affectedAreas": {
+    "message": "Affected areas",
+    "description": "Text for affected areas"
+  },
+  "allCountry": {
+    "message": "Whole country",
+    "description": "Text for the whole country"
+  },
+  "infoMissing": {
+    "message": "Information missing",
+    "description": "Text when information is missing"
+  },
+  "expiredLabel": {
+    "message": "Ended:",
+    "description": "Label for expired VMA"
+  },
+  "noHistoryText": {
+    "message": "No VMA history available.",
+    "description": "Text when no history exists"
+  },
+  "historyInfoText": {
+    "message": "The last three completed VMA alerts will be shown here.",
+    "description": "Information text about history"
+  },
+  "whatsNewTitle": {
+    "message": "What's new in version 1.1",
+    "description": "Title for version news"
+  },
+  "languageButtonTitle": {
+    "message": "Language/Språk",
+    "description": "Title for language button"
+  },
+  "languageChangedTo": {
+    "message": "Language changed to",
+    "description": "Message that the language has been changed"
+  },
+  "usesApi": {
+    "message": "Uses",
+    "description": "Text for 'Uses' in the footer"
+  }
+}

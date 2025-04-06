@@ -1,0 +1,178 @@
+{
+  "extensionName": {
+    "message": "VMA Notifieringar - Sveriges krisberedskap",
+    "description": "Namn på tillägget"
+  },
+  "extensionDescription": {
+    "message": "Övervakar och visar Svenska VMA (Viktigt Meddelande till Allmänheten) från Sveriges Radio i realtid",
+    "description": "Beskrivning av tillägget"
+  },
+  "popupTitle": {
+    "message": "VMA Notifieringar",
+    "description": "Titel i popup-fönstret"
+  },
+  "activeTab": {
+    "message": "Aktiva VMA",
+    "description": "Text för aktiva VMA-fliken"
+  },
+  "historyTab": {
+    "message": "Historik",
+    "description": "Text för historik-fliken"
+  },
+  "loadingText": {
+    "message": "Hämtar VMA information...",
+    "description": "Text som visas när data laddas"
+  },
+  "noAlertsText": {
+    "message": "Inga aktiva VMA för tillfället.",
+    "description": "Text som visas när det inte finns några aktiva VMA"
+  },
+  "lastCheckedText": {
+    "message": "Senast kontrollerad:",
+    "description": "Text före senast kontrollerad-tiden"
+  },
+  "acknowledgeButtonText": {
+    "message": "Kvittera VMA",
+    "description": "Text på kvitteringsknappen"
+  },
+  "acknowledgeInfoText": {
+    "message": "Kvittera för att stoppa blinkande notifiering men behålla röd varningsikon",
+    "description": "Förklarande text för kvittering"
+  },
+  "acknowledgedConfirmation": {
+    "message": "VMA Kvitterat",
+    "description": "Bekräftelse när VMA har kvitterats"
+  },
+  "testModeButtonText": {
+    "message": "Testa VMA",
+    "description": "Text på testlägesknappen"
+  },
+  "deactivateTestText": {
+    "message": "Avaktivera test",
+    "description": "Text för att avaktivera testläge"
+  },
+  "statusText": {
+    "message": "Status:",
+    "description": "Text före statusvisning"
+  },
+  "normalStatusText": {
+    "message": "Normal",
+    "description": "Text för normal status"
+  },
+  "activeStatusText": {
+    "message": "Aktiv VMA",
+    "description": "Text för aktiv VMA-status"
+  },
+  "settingsTitle": {
+    "message": "VMA Notifieringar - Inställningar",
+    "description": "Titel på inställningssidan"
+  },
+  "regionLabel": {
+    "message": "Region för övervakning:",
+    "description": "Etikett för regionval"
+  },
+  "regionHint": {
+    "message": "Välj region för att övervaka VMA-meddelanden. Välj \"Hela Sverige\" för att övervaka alla regioner.",
+    "description": "Hjälptext för regionval"
+  },
+  "languageLabel": {
+    "message": "Föredraget språk:",
+    "description": "Etikett för språkval"
+  },
+  "languageHint": {
+    "message": "Välj föredraget språk för VMA-meddelanden. Engelska översättningar visas när de finns tillgängliga.",
+    "description": "Hjälptext för språkval"
+  },
+  "intervalLabel": {
+    "message": "Uppdateringsintervall:",
+    "description": "Etikett för uppdateringsintervall"
+  },
+  "intervalInfo": {
+    "message": "VMA-API:et kontrolleras var 5:e minut",
+    "description": "Information om uppdateringsintervall"
+  },
+  "saveButton": {
+    "message": "Spara inställningar",
+    "description": "Text på sparaknappen"
+  },
+  "savedMessage": {
+    "message": "Inställningar sparade!",
+    "description": "Bekräftelsemeddelande när inställningar sparats"
+  },
+  "errorMessage": {
+    "message": "Kunde inte spara inställningar",
+    "description": "Felmeddelande vid sparande av inställningar"
+  },
+  "notificationTitle": {
+    "message": "Viktigt Meddelande till Allmänheten",
+    "description": "Standardtitel för VMA-notifikationer"
+  },
+  "defaultVMATitle": {
+    "message": "Viktigt Meddelande till Allmänheten",
+    "description": "Standardtitel för VMA när ingen specifik titel finns"
+  },
+  "testVMA": {
+    "message": "Test VMA",
+    "description": "Text för test-VMA"
+  },
+  "importantMessage": {
+    "message": "VIKTIGT MEDDELANDE",
+    "description": "Titel för viktigt meddelande-notifikation"
+  },
+  "clickForMoreInfo": {
+    "message": "Viktigt Meddelande till Allmänheten (VMA). Klicka på VMA-ikonen i verktygsfältet för mer information.",
+    "description": "Meddelande som uppmanar användaren att klicka på ikonen"
+  },
+  "clickVmaIcon": {
+    "message": "Klicka på VMA-ikonen",
+    "description": "Uppmaning att klicka på ikonen"
+  },
+  "clickIconDetails": {
+    "message": "Klicka på den röda VMA-ikonen i verktygsfältet för att se detaljerad information.",
+    "description": "Detaljer om hur man hittar mer information"
+  },
+  "noDetailedInfo": {
+    "message": "Ingen detaljerad information tillgänglig.",
+    "description": "Text när ingen detaljerad information finns"
+  },
+  "affectedAreas": {
+    "message": "Berörda områden",
+    "description": "Text för berörda områden"
+  },
+  "allCountry": {
+    "message": "Hela landet",
+    "description": "Text för hela landet"
+  },
+  "infoMissing": {
+    "message": "Information saknas",
+    "description": "Text när information saknas"
+  },
+  "expiredLabel": {
+    "message": "Avslutades:",
+    "description": "Etikett för utgånget VMA"
+  },
+  "noHistoryText": {
+    "message": "Ingen VMA-historik tillgänglig.",
+    "description": "Text när ingen historik finns"
+  },
+  "historyInfoText": {
+    "message": "De senaste tre avslutade VMA kommer att visas här.",
+    "description": "Informationstext om historik"
+  },
+  "whatsNewTitle": {
+    "message": "Nyheter i version 1.1",
+    "description": "Titel för nyheter i versionen"
+  },
+  "languageButtonTitle": {
+    "message": "Språk/Language",
+    "description": "Titel för språkknappen"
+  },
+  "languageChangedTo": {
+    "message": "Språk ändrat till",
+    "description": "Meddelande om att språket har ändrats"
+  },
+  "usesApi": {
+    "message": "Använder",
+    "description": "Text för 'Använder' i footern"
+  }
+}

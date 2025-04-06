@@ -10,6 +10,7 @@
   <div class="container">
     <header>
       <h1>VMA Notifieringar - Inställningar</h1>
+      <div class="version-badge">v1.1</div>
     </header>
     
     <div class="options-form">
@@ -40,9 +41,17 @@
             <option value="24">Västerbottens län</option>
             <option value="25">Norrbottens län</option>
           </optgroup>
-          <!-- Kommuner can be added here -->
         </select>
         <p class="hint">Välj region för att övervaka VMA-meddelanden. Välj "Hela Sverige" för att övervaka alla regioner.</p>
+      </div>
+      
+      <div class="option-group">
+        <label for="language-select">Föredraget språk:</label>
+        <select id="language-select">
+          <option value="sv">Svenska</option>
+          <option value="en">English</option>
+        </select>
+        <p class="hint">Välj föredraget språk för VMA-meddelanden. Engelska översättningar visas när de finns tillgängliga.</p>
       </div>
       
       <div class="option-group">
@@ -56,8 +65,18 @@
       </div>
     </div>
     
+    <div class="what-is-new">
+      <h2>Nyheter i version 1.1</h2>
+      <ul>
+        <li>Stöd för VMA på engelska via Sveriges Radios nya översättningar (från november 2024)</li>
+        <li>Möjlighet att välja föredraget språk mellan svenska och engelska</li>
+        <li>Förbättrad användargränssnitt med språkväljare</li>
+        <li>Versionshantering med migrations-stöd</li>
+      </ul>
+    </div>
+    
     <footer>
-      <p>VMA Notifieringar v1.0 - Använder <a href="https://vmaapi.sr.se/" target="_blank">Sveriges Radio VMA API</a></p>
+      <p>VMA Notifieringar v1.1 - Använder <a href="https://vmaapi.sr.se/" target="_blank">Sveriges Radio VMA API</a></p>
     </footer>
   </div>
   
