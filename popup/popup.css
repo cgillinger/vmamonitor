@@ -20,7 +20,9 @@
 .acknowledge-info {
   font-size: 12px;
   color: #666;
-}/* Base styles */
+}
+
+/* Base styles */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -77,7 +79,7 @@ header button:hover {
 }
 
 /* Main content */
-#alerts-container {
+#alerts-container, #history-container {
   padding: 15px;
   min-height: 200px;
   max-height: 400px;
@@ -194,4 +196,39 @@ footer {
 
 #status-text.active {
   color: #ff0000;
+}
+
+/* Tabs navigation */
+.tab-navigation {
+  display: flex;
+  border-bottom: 1px solid #ddd;
+}
+
+.tab-button {
+  flex: 1;
+  padding: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.tab-button:hover {
+  background-color: rgba(5, 74, 145, 0.05);
+}
+
+.tab-button.active {
+  font-weight: bold;
+  color: #054a91;
+  border-bottom: 3px solid #054a91;
+}
+
+/* History specific styles */
+.alert-expired {
+  font-size: 12px;
+  display: block;
+  margin-top: 5px;
+  color: #888;
+  font-style: italic;
 }

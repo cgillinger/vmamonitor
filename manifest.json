@@ -1,11 +1,12 @@
 {
   "manifest_version": 3,
-  "name": "VMA Monitor",
+  "name": "VMA Notifieringar - Sveriges krisberedskap",
   "version": "1.0",
-  "description": "Monitors Swedish VMA (Important Public Announcements) and displays alerts",
+  "description": "Övervakar och visar Svenska VMA (Viktigt Meddelande till Allmänheten) från Sveriges Radio i realtid",
   "permissions": [
     "storage",
-    "alarms"
+    "alarms",
+    "notifications"
   ],
   "host_permissions": [
     "https://vmaapi.sr.se/*"

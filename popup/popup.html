@@ -3,17 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VMA Monitor</title>
+  <title>VMA Notifieringar</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
   <header>
-    <h1>VMA Monitor</h1>
+    <h1>VMA Notifieringar</h1>
     <div class="actions">
       <button id="refresh-btn" title="Uppdatera"><span>⟳</span></button>
       <button id="options-btn" title="Inställningar"><span>⚙</span></button>
     </div>
   </header>
+
+  <div class="tab-navigation">
+    <button id="active-tab" class="tab-button active">Aktiva VMA</button>
+    <button id="history-tab" class="tab-button">Historik</button>
+  </div>
 
   <div id="alerts-container">
     <div id="loading" class="centered">
@@ -31,7 +36,18 @@
     
     <div id="acknowledge-container" class="hidden">
       <button id="acknowledge-btn" class="acknowledge-btn">Kvittera VMA</button>
-      <p class="acknowledge-info">Kvittera för att förhindra att popupen öppnas automatiskt igen</p>
+      <p class="acknowledge-info">Kvittera för att stoppa blinkande notifiering men behålla röd varningsikon</p>
+    </div>
+  </div>
+
+  <div id="history-container" class="hidden">
+    <div id="history-list">
+      <!-- History alerts will be inserted here -->
+    </div>
+    
+    <div id="no-history" class="centered hidden">
+      <p>Ingen VMA-historik tillgänglig.</p>
+      <p>De senaste tre avslutade VMA kommer att visas här.</p>
     </div>
   </div>
 

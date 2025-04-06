@@ -1,9 +1,30 @@
 document.addEventListener('DOMContentLoaded', init);
 
+const DEBUG = false; // Set to false in production
+
+// Logger utility for production-appropriate logging
+const logger = {
+  info: function(message) {
+    if (DEBUG) {
+      console.log('[VMA-INFO] ' + message);
+    }
+  },
+  warn: function(message) {
+    console.warn('[VMA-WARN] ' + message);
+  },
+  error: function(message, error) {
+    console.error('[VMA-ERROR] ' + message, error);
+  },
+  important: function(message) {
+    console.log('[VMA-IMPORTANT] ' + message);
+  }
+};
+
 // Initialize the options page
 async function init() {
   await loadSettings();
   setupEventListeners();
+  logger.info('Options page initialized');
 }
 
 // Load saved settings
@@ -15,9 +36,12 @@ async function loadSettings() {
     const regionSelect = document.getElementById('region-select');
     if (settings.geoCode) {
       regionSelect.value = settings.geoCode;
+      logger.info(`Loaded region setting: ${settings.geoCode}`);
+    } else {
+      logger.info('No region setting found, using default');
     }
   } catch (error) {
-    console.error('Error loading settings:', error);
+    logger.error('Error loading settings:', error);
     showStatus('Kunde inte ladda inställningar', true);
   }
 }
@@ -25,12 +49,14 @@ async function loadSettings() {
 // Set up event listeners
 function setupEventListeners() {
   document.getElementById('save-btn').addEventListener('click', saveSettings);
+  logger.info('Event listeners set up');
 }
 
 // Save settings
 async function saveSettings() {
   try {
     const geoCode = document.getElementById('region-select').value;
+    logger.important(`Saving region setting: ${geoCode}`);
     
     await chrome.storage.sync.set({ geoCode });
     
@@ -39,7 +65,7 @@ async function saveSettings() {
     
     showStatus('Inställningar sparade!');
   } catch (error) {
-    console.error('Error saving settings:', error);
+    logger.error('Error saving settings:', error);
     showStatus('Kunde inte spara inställningar', true);
   }
 }
@@ -52,8 +78,10 @@ function showStatus(message, isError = false) {
   
   if (isError) {
     status.classList.add('error');
+    logger.error(`Status error: ${message}`);
   } else {
     status.classList.remove('error');
+    logger.info(`Status message: ${message}`);
   }
   
   // Hide status after 3 seconds
