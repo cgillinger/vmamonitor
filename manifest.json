@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "VMA Notifieringar - Sveriges krisberedskap",
-  "version": "1.1",
+  "version": "1.2",
   "description": "Övervakar och visar Svenska VMA (Viktigt Meddelande till Allmänheten) från Sveriges Radio i realtid",
   "default_locale": "sv",
   "permissions": [

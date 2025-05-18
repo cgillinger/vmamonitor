@@ -25,8 +25,26 @@ VMA (Viktigt Meddelande till Allmänheten) är ett varningssystem som används i
 - **VMA-historik**: Sparar automatiskt de tre senaste avslutade VMA-meddelandena
 - **Automatisk datarensning**: Rensar gamla kvitterade varningar efter 3 dagar
 - **Språkstöd**: Stöd för både svenska och engelska VMA-meddelanden
+- **Tillgänglighet**: Fullständigt stöd för skärmläsare och tangentbordsnavigering
+- **ARIA-kompatibilitet**: Alla element har beskrivande etiketter för hjälpmedel
+- **Keyboard shortcuts**: Navigation med tab, piltangenter och escape
+- **Focus indicators**: Tydliga visuella markeringar för tangentbordsanvändare
+- **Screen reader announcements**: Automatiska meddelanden för statusändringar
 
 ## Versionsinformation
+
+### Version 1.2 (May 2025)
+- **Tillgänglighetsförbättringar**: Komplett omarbetning för bättre stöd av skärmläsare och tangentbordsnavigering
+- **ARIA-etiketter**: Alla interaktiva element har nu beskrivande etiketter för hjälpmedel
+- **Live regions**: Dynamiska statusuppdateringar meddelas automatiskt till skärmläsare
+- **Tangentbordsnavigering**: Fullständig support för navigation med enbart tangentbord
+- **Focus indicators**: Tydliga visuella markeringar när element får fokus
+- **Skärmläsarmeddelanden**: Automatiska meddelanden för VMA-status, kvitteringar och språkändringar
+- **Semantic HTML**: Förbättrad struktur med `<main>`, `<nav>`, `<section>` och ARIA-roller
+- **Accessibility preferences**: Stöd för "high contrast" och "reduced motion"
+- **Förbättrad notifieringshantering**: En enda notifiering per VMA istället för dubletter
+- **Footer kvittera-knapp**: Röd kvittera-knapp bredvid test-knappen för snabbare åtkomst
+- **Förbättrad design**: Moderniserad inställningssida med gradient-bakgrunder och animationer
 
 ### Version 1.1 (April 2025)
 - Stöd för VMA på engelska via Sveriges Radios nya översättningar (från november 2024)
@@ -132,7 +150,7 @@ För mer information, se vår [integritetspolicy](PRIVACY_POLICY.md).
 
 ## Bidrag och Support
 
-Detta projekt är öppen källkod under MIT-licensen. Bidrag välkommas via pull requests.
+Detta projekt är öppen källkod under MIT-licensen. Bidrag välkomnas via pull requests.
 
 Vid frågor eller problem, vänligen öppna ett ärende i GitHub-repositoriet.
 
@@ -145,3 +163,44 @@ Vid frågor eller problem, vänligen öppna ett ärende i GitHub-repositoriet.
 ## Licens
 
 Detta projekt är licensierat under MIT-licensen - se [LICENSE](LICENSE) för detaljer.
+
+## Changelog
+
+### [1.2.0] - 2025-05-18
+
+#### Tillagda funktioner
+- **Tillgänglighet**: Komplett ARIA-stöd för skärmläsare med etiketter, live regions och roller
+- **Tangentbordsnavigering**: Fullständig navigering med tab, piltangenter och escape-knapp
+- **Skärmläsarmeddelanden**: Automatiska meddelanden för VMA-status, kvitteringar, språkändringar och flikval
+- **Focus indicators**: Blå rammarkeringar för alla fokuserbara element
+- **Accessibility preferences**: Stöd för "prefers-contrast: high" och "prefers-reduced-motion"
+- **Footer kvittera-knapp**: Röd kvittera-knapp i popup-footern bredvid test-knappen
+
+#### Förbättrade funktioner
+- **Notifieringar**: En enda sammanslagen notifiering per VMA istället för dubletter
+- **HTML-struktur**: Semantic elements (`<main>`, `<nav>`, `<section>`) med korrekt ARIA-roller
+- **Språkstöd**: Dynamiska språkattribut (`lang`) för korrekt skärmläsaruttal
+- **Design**: Moderniserad inställningssida med gradienter, animationer och hover-effekter
+
+#### Fixade buggar
+- Kvittera-knappen visas inte längre för test-VMA
+- Kvittering stoppar nu all notifikationsaktivitet helt (badge-blinking och popup-meddelanden)
+- Förbättrad synkronisering mellan huvud- och footer-kvittera-knappar
+
+#### Tekniska förändringar
+- Uppdaterade alla filer till version 1.2
+- Utökade svenska och engelska lokalisationsfiler med tillgänglighetstexter
+- CSS-förbättringar för `@media` queries (contrast/motion preferences)
+- JavaScript-förbättringar för keyboard event handling och screen reader announcements
+
+### [1.1.0] - 2025-04-XX
+- Stöd för svenska och engelska VMA-meddelanden
+- Språkväljare i popup-gränssnitt
+- Automatisk språkdetektering vid första installation
+- Migration-stöd för befintliga installationer
+
+### [1.0.0] - 2025-XX-XX
+- Initial release med grundläggande VMA-övervakning
+- Regionfiltrering för svenska län
+- Testläge för demonstration
+- VMA-historik och kvittering

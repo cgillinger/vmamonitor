@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="sv">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,62 +9,134 @@
 <body>
   <header>
     <h1>VMA Notifieringar</h1>
-    <div class="actions">
-      <button id="language-btn" title="Språk/Language" class="lang-toggle" data-lang="sv"><span>🌐</span></button>
-      <button id="refresh-btn" title="Uppdatera"><span>⟳</span></button>
-      <button id="options-btn" title="Inställningar"><span>⚙</span></button>
+    <div class="actions" role="toolbar" aria-label="Verktygsåtgärder">
+      <button id="language-btn" 
+              class="lang-toggle" 
+              data-lang="sv"
+              aria-label="Byt språk från svenska till engelska"
+              title="Språk/Language">
+        <span aria-hidden="true">🌐</span>
+        <span class="sr-only" id="language-status">Nuvarande språk: Svenska</span>
+      </button>
+      <button id="refresh-btn" 
+              aria-label="Uppdatera VMA-information"
+              title="Uppdatera">
+        <span aria-hidden="true">⟳</span>
+      </button>
+      <button id="options-btn" 
+              aria-label="Öppna inställningar"
+              title="Inställningar">
+        <span aria-hidden="true">⚙</span>
+      </button>
     </div>
   </header>
 
-  <div class="tab-navigation">
-    <button id="active-tab" class="tab-button active">Aktiva VMA</button>
-    <button id="history-tab" class="tab-button">Historik</button>
-  </div>
+  <nav class="tab-navigation" role="tablist" aria-label="VMA-innehåll">
+    <button id="active-tab" 
+            class="tab-button active" 
+            role="tab" 
+            aria-selected="true"
+            aria-controls="alerts-container"
+            tabindex="0">
+      Aktiva VMA
+    </button>
+    <button id="history-tab" 
+            class="tab-button" 
+            role="tab" 
+            aria-selected="false"
+            aria-controls="history-container"
+            tabindex="-1">
+      Historik
+    </button>
+  </nav>
 
-  <div id="alerts-container">
-    <div id="loading" class="centered">
-      <p>Hämtar VMA information...</p>
+  <main>
+    <div id="alerts-container" 
+         role="tabpanel" 
+         aria-labelledby="active-tab"
+         aria-live="polite">
+      <div id="loading" class="centered">
+        <p role="status" aria-live="polite">Hämtar VMA information...</p>
+      </div>
+      
+      <div id="no-alerts" class="centered hidden">
+        <p>Inga aktiva VMA för tillfället.</p>
+        <p>Senast kontrollerad: <span id="last-checked">-</span></p>
+      </div>
+      
+      <div id="alerts-list" class="hidden" role="list" aria-label="Aktiva VMA-meddelanden">
+        <!-- Alerts will be inserted here -->
+      </div>
+      
+      <div id="acknowledge-container" class="hidden">
+        <button id="acknowledge-btn" 
+                class="acknowledge-btn"
+                aria-describedby="acknowledge-description">
+          Kvittera VMA
+        </button>
+        <p class="acknowledge-info" id="acknowledge-description">
+          Kvittera för att stoppa blinkande notifiering men behålla röd varningsikon
+        </p>
+      </div>
     </div>
-    
-    <div id="no-alerts" class="centered hidden">
-      <p>Inga aktiva VMA för tillfället.</p>
-      <p>Senast kontrollerad: <span id="last-checked">-</span></p>
-    </div>
-    
-    <div id="alerts-list" class="hidden">
-      <!-- Alerts will be inserted here -->
-    </div>
-    
-    <div id="acknowledge-container" class="hidden">
-      <button id="acknowledge-btn" class="acknowledge-btn">Kvittera VMA</button>
-      <p class="acknowledge-info">Kvittera för att stoppa blinkande notifiering men behålla röd varningsikon</p>
-    </div>
-  </div>
 
-  <div id="history-container" class="hidden">
-    <div id="history-list">
-      <!-- History alerts will be inserted here -->
+    <div id="history-container" 
+         class="hidden" 
+         role="tabpanel" 
+         aria-labelledby="history-tab">
+      <div id="history-list" role="list" aria-label="VMA-historik">
+        <!-- History alerts will be inserted here -->
+      </div>
+      
+      <div id="no-history" class="centered hidden">
+        <p>Ingen VMA-historik tillgänglig.</p>
+        <p>De senaste tre avslutade VMA kommer att visas här.</p>
+      </div>
     </div>
-    
-    <div id="no-history" class="centered hidden">
-      <p>Ingen VMA-historik tillgänglig.</p>
-      <p>De senaste tre avslutade VMA kommer att visas här.</p>
-    </div>
-  </div>
+  </main>
 
-  <footer>
-    <button id="test-mode-btn">Testa VMA</button>
+  <footer role="contentinfo">
+    <div class="footer-buttons" role="group" aria-label="Åtgärdsknappar">
+      <button id="test-mode-btn" 
+              aria-describedby="test-mode-description">
+        Testa VMA
+      </button>
+      <button id="footer-acknowledge-btn" 
+              class="hidden acknowledge-btn"
+              aria-describedby="acknowledge-description">
+        Kvittera VMA
+      </button>
+    </div>
     <div class="status">
-      Status: <span id="status-text">Normal</span>
-      <span id="version-text" class="version-info">v1.1</span>
+      <span aria-label="VMA-status">Status:</span>
+      <span id="status-text" 
+            role="status" 
+            aria-live="polite" 
+            aria-atomic="true">
+        Normal
+      </span>
+      <span id="version-text" class="version-info">v1.2</span>
     </div>
   </footer>
 
+  <!-- Screen reader announcements -->
+  <div aria-live="assertive" aria-atomic="true" class="sr-only" id="sr-announcements"></div>
+  
+  <!-- Hidden descriptions for screen readers -->
+  <div class="sr-only">
+    <div id="test-mode-description">
+      Aktivera testläge för att simulera ett VMA-meddelande och testa extensionens funktionalitet
+    </div>
+    <div id="severe-vma-description">
+      Allvarligt VMA aktivt. Använd kvittera-knappen för att stoppa blinkande notifieringar
+    </div>
+  </div>
+
   <template id="alert-template">
-    <div class="alert">
+    <div class="alert" role="listitem">
       <div class="alert-header">
-        <span class="alert-type"></span>
-        <span class="alert-time"></span>
+        <span class="alert-type" aria-label="VMA-typ"></span>
+        <span class="alert-time" aria-label="Tidpunkt"></span>
       </div>
       <div class="alert-content">
         <h3 class="alert-title"></h3>

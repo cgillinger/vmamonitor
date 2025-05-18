@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', init);
 
 const DEBUG = false; // Set to false in production
-const VERSION = '1.1'; // Current extension version
+const VERSION = '1.2'; // Updated to version 1.2
 
 // Logger utility for production-appropriate logging
 const logger = {
@@ -37,6 +37,9 @@ function localizeUI() {
 // Update UI elements with correct language
 function updateLanguageUI(lang) {
   try {
+    // Update page language attribute for screen readers
+    document.documentElement.lang = lang;
+    
     // Update page title
     document.title = chrome.i18n.getMessage('settingsTitle') || 'VMA Notifieringar - Inställningar';
     
@@ -66,8 +69,36 @@ function updateLanguageUI(lang) {
     // Update save button
     document.getElementById('save-btn').textContent = chrome.i18n.getMessage('saveButton') || 'Spara inställningar';
     
-    // Update What's New section
-    document.querySelector('.what-is-new h2').textContent = chrome.i18n.getMessage('whatsNewTitle') || 'Nyheter i version 1.1';
+    // Update What's New section for v1.2
+    const whatsNewSection = document.querySelector('.what-is-new');
+    if (whatsNewSection) {
+      whatsNewSection.querySelector('h2').textContent = lang === 'sv' ? 'Nyheter i version 1.2' : 'What\'s new in version 1.2';
+      
+      const list = whatsNewSection.querySelector('ul');
+      list.innerHTML = '';
+      
+      const newFeatures = lang === 'sv' ? [
+        'Förbättrad tillgänglighet för skärmläsare och tangentbordsnavigering',
+        'ARIA-etiketter och live regions för bättre skärmläsarstöd',
+        'Tangentbordsgenvägar och fokusindikatorer',
+        'Stöd för "high contrast" och "reduced motion" preferenser',
+        'Förbättrade notifikationer till skärmläsare',
+        'Bättre strukturering av innehåll för hjälpmedel'
+      ] : [
+        'Improved accessibility for screen readers and keyboard navigation',
+        'ARIA labels and live regions for better screen reader support',
+        'Keyboard shortcuts and focus indicators',
+        'Support for "high contrast" and "reduced motion" preferences',
+        'Enhanced screen reader announcements',
+        'Better content structure for assistive technology'
+      ];
+      
+      newFeatures.forEach(feature => {
+        const li = document.createElement('li');
+        li.textContent = feature;
+        list.appendChild(li);
+      });
+    }
     
     // Update footer
     const footer = document.querySelector('footer p');
@@ -95,10 +126,35 @@ async function init() {
     await localizeUI();
     await loadSettings();
     setupEventListeners();
+    setupAccessibility();
     logger.info('Options page initialized');
   } catch (error) {
     logger.error('Error initializing options page:', error);
   }
+}
+
+// Setup accessibility features
+function setupAccessibility() {
+  // Add keyboard navigation
+  document.addEventListener('keydown', (event) => {
+    // Escape key to close options (if in popup mode)
+    if (event.key === 'Escape' && window.opener !== null) {
+      window.close();
+    }
+  });
+  
+  // Add focus indicators
+  const focusableElements = document.querySelectorAll('select, button');
+  focusableElements.forEach(element => {
+    element.addEventListener('focus', () => {
+      element.style.outline = '2px solid #054a91';
+      element.style.outlineOffset = '2px';
+    });
+    
+    element.addEventListener('blur', () => {
+      element.style.outline = 'none';
+    });
+  });
 }
 
 // Load saved settings
@@ -142,7 +198,7 @@ function onLanguageChange(event) {
   updateLanguageUI(newLanguage);
 }
 
-// Save settings
+// Save settings with accessibility announcements
 async function saveSettings() {
   try {
     const geoCode = document.getElementById('region-select').value;
@@ -155,7 +211,16 @@ async function saveSettings() {
     // Trigger a refresh in the background script
     chrome.runtime.sendMessage({ action: 'checkForAlerts' });
     
-    showStatus(chrome.i18n.getMessage('savedMessage') || 'Inställningar sparade!');
+    const successMessage = chrome.i18n.getMessage('savedMessage') || 'Inställningar sparade!';
+    showStatus(successMessage);
+    
+    // Announce to screen reader
+    if (window.speechSynthesis && window.SpeechSynthesisUtterance) {
+      const utterance = new SpeechSynthesisUtterance(successMessage);
+      utterance.lang = preferredLanguage === 'en' ? 'en-US' : 'sv-SE';
+      utterance.volume = 0.5;
+      window.speechSynthesis.speak(utterance);
+    }
     
     // Om detta är ett popup-fönster, stäng det efter en kort fördröjning
     if (window.opener !== null || window.history.length <= 1) {
@@ -169,11 +234,16 @@ async function saveSettings() {
   }
 }
 
-// Show status message
+// Show status message with enhanced accessibility
 function showStatus(message, isError = false) {
   const status = document.getElementById('status');
   status.textContent = message;
   status.classList.remove('hidden');
+  
+  // Add ARIA live region attributes
+  status.setAttribute('role', 'status');
+  status.setAttribute('aria-live', isError ? 'assertive' : 'polite');
+  status.setAttribute('aria-atomic', 'true');
   
   if (isError) {
     status.classList.add('error');
@@ -186,5 +256,8 @@ function showStatus(message, isError = false) {
   // Hide status after 3 seconds
   setTimeout(() => {
     status.classList.add('hidden');
+    status.removeAttribute('role');
+    status.removeAttribute('aria-live');
+    status.removeAttribute('aria-atomic');
   }, 3000);
 }

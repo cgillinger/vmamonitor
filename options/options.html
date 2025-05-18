@@ -10,13 +10,13 @@
   <div class="container">
     <header>
       <h1>VMA Notifieringar - Inställningar</h1>
-      <div class="version-badge">v1.1</div>
+      <div class="version-badge">v1.2</div>
     </header>
     
-    <div class="options-form">
+    <form class="options-form" role="form" aria-label="VMA inställningar">
       <div class="option-group">
         <label for="region-select">Region för övervakning:</label>
-        <select id="region-select">
+        <select id="region-select" name="region" aria-describedby="region-hint">
           <option value="00">Hela Sverige</option>
           <optgroup label="Län">
             <option value="01">Stockholms län</option>
@@ -42,42 +42,49 @@
             <option value="25">Norrbottens län</option>
           </optgroup>
         </select>
-        <p class="hint">Välj region för att övervaka VMA-meddelanden. Välj "Hela Sverige" för att övervaka alla regioner.</p>
+        <p id="region-hint" class="hint">Välj region för att övervaka VMA-meddelanden. Välj "Hela Sverige" för att övervaka alla regioner.</p>
       </div>
       
       <div class="option-group">
         <label for="language-select">Föredraget språk:</label>
-        <select id="language-select">
+        <select id="language-select" name="language" aria-describedby="language-hint">
           <option value="sv">Svenska</option>
           <option value="en">English</option>
         </select>
-        <p class="hint">Välj föredraget språk för VMA-meddelanden. Engelska översättningar visas när de finns tillgängliga.</p>
+        <p id="language-hint" class="hint">Välj föredraget språk för VMA-meddelanden. Engelska översättningar visas när de finns tillgängliga.</p>
       </div>
       
       <div class="option-group">
         <label for="check-interval">Uppdateringsintervall:</label>
-        <div class="info-text">VMA-API:et kontrolleras var 5:e minut</div>
+        <div class="info-text" id="interval-info">VMA-API:et kontrolleras var 5:e minut</div>
       </div>
       
       <div class="actions">
-        <button id="save-btn" type="button">Spara inställningar</button>
+        <button id="save-btn" type="button" aria-describedby="save-help">Spara inställningar</button>
         <div id="status" class="hidden"></div>
       </div>
-    </div>
+    </form>
     
-    <div class="what-is-new">
-      <h2>Nyheter i version 1.1</h2>
+    <section class="what-is-new" aria-labelledby="whats-new-title">
+      <h2 id="whats-new-title">Nyheter i version 1.2</h2>
       <ul>
-        <li>Stöd för VMA på engelska via Sveriges Radios nya översättningar (från november 2024)</li>
-        <li>Möjlighet att välja föredraget språk mellan svenska och engelska</li>
-        <li>Förbättrad användargränssnitt med språkväljare</li>
-        <li>Versionshantering med migrations-stöd</li>
+        <li>Förbättrad tillgänglighet för skärmläsare och tangentbordsnavigering</li>
+        <li>ARIA-etiketter och live regions för bättre skärmläsarstöd</li>
+        <li>Tangentbordsgenvägar och fokusindikatorer</li>
+        <li>Stöd för "high contrast" och "reduced motion" preferenser</li>
+        <li>Förbättrade notifikationer till skärmläsare</li>
+        <li>Bättre strukturering av innehåll för hjälpmedel</li>
       </ul>
-    </div>
+    </section>
     
-    <footer>
-      <p>VMA Notifieringar v1.1 - Använder <a href="https://vmaapi.sr.se/" target="_blank">Sveriges Radio VMA API</a></p>
+    <footer role="contentinfo">
+      <p>VMA Notifieringar v1.2 - Använder <a href="https://vmaapi.sr.se/" target="_blank" rel="noopener noreferrer">Sveriges Radio VMA API</a></p>
     </footer>
+  </div>
+  
+  <!-- Hidden help text for screen readers -->
+  <div class="sr-only">
+    <div id="save-help">Sparar inställningarna och uppdaterar VMA-övervakningen enligt dina val</div>
   </div>
   
   <script src="options.js"></script>

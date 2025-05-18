@@ -1,0 +1,41 @@
+# Windows Zone Identifier files
+*:Zone.Identifier
+
+# Other Windows alternate data streams that might appear in WSL
+*:com.dropbox.attrs
+*:com.apple.metadata
+
+# Windows thumbnail cache files
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+
+# Windows Installer files
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+
+# Windows shortcuts
+*.lnk
+
+# Windows Recycle Bin files
+$RECYCLE.BIN/
+
+# Windows system files
+Desktop.ini
+
+# Optional: If you want to ignore common temporary files too
+# Node.js
+node_modules/
+npm-debug.log*
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Icon?

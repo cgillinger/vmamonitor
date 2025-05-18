@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', init);
 let testMode = false;
 let currentLanguage = 'sv'; // Default to Swedish
 const DEBUG = false; // Set to false in production
-const VERSION = '1.1'; // Current extension version
+const VERSION = '1.2'; // Updated to version 1.2
 
 // Logger utility for production-appropriate logging
 const logger = {
@@ -23,6 +23,19 @@ const logger = {
   }
 };
 
+// Screen reader announcements
+function announceToScreenReader(message, priority = 'polite') {
+  const announcer = document.getElementById('sr-announcements');
+  if (announcer) {
+    announcer.setAttribute('aria-live', priority);
+    announcer.textContent = message;
+    // Clear after a delay to allow for new announcements
+    setTimeout(() => {
+      announcer.textContent = '';
+    }, 1000);
+  }
+}
+
 // Initialize the popup
 async function init() {
   try {
@@ -37,6 +50,9 @@ async function init() {
     // Setup event listeners first so language toggle works immediately
     setupEventListeners();
     
+    // Setup keyboard navigation
+    setupKeyboardNavigation();
+    
     // Lokalisera UI based on current language
     await updateUIForLanguage(currentLanguage);
     
@@ -45,9 +61,53 @@ async function init() {
     
     // Load alerts with current language
     await loadAlerts();
+    
+    // Announce current status to screen reader
+    announceStatusToScreenReader();
   } catch (error) {
     console.error('Error initializing popup:', error);
   }
+}
+
+// Setup keyboard navigation
+function setupKeyboardNavigation() {
+  // Tab navigation for alert items
+  document.addEventListener('keydown', (event) => {
+    // Handle tab navigation in tab list
+    if (event.target.matches('.tab-button')) {
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        event.preventDefault();
+        const tabs = Array.from(document.querySelectorAll('.tab-button'));
+        const currentIndex = tabs.indexOf(event.target);
+        const nextIndex = event.key === 'ArrowLeft' 
+          ? (currentIndex - 1 + tabs.length) % tabs.length
+          : (currentIndex + 1) % tabs.length;
+        
+        // Remove focus from current tab
+        tabs[currentIndex].setAttribute('tabindex', '-1');
+        tabs[currentIndex].setAttribute('aria-selected', 'false');
+        
+        // Focus new tab
+        tabs[nextIndex].setAttribute('tabindex', '0');
+        tabs[nextIndex].focus();
+        tabs[nextIndex].click();
+      }
+    }
+    
+    // Escape key to close popup (useful for keyboard users)
+    if (event.key === 'Escape') {
+      window.close();
+    }
+  });
+}
+
+// Announce current status to screen reader
+function announceStatusToScreenReader() {
+  const statusText = document.getElementById('status-text').textContent;
+  const message = currentLanguage === 'sv' 
+    ? `VMA-status: ${statusText}`
+    : `VMA status: ${statusText}`;
+  announceToScreenReader(message);
 }
 
 // Apply language to the interface
@@ -56,14 +116,34 @@ async function updateUIForLanguage(language) {
     // Set the current UI language
     chrome.i18n.getUILanguage = function() { return language === 'sv' ? 'sv' : 'en'; };
     
-    // Update language button indicator
+    // Update language button indicator and accessibility
     const langBtn = document.getElementById('language-btn');
     langBtn.setAttribute('data-lang', language);
     langBtn.title = language === 'sv' ? 'Byt till engelska' : 'Switch to Swedish';
+    langBtn.setAttribute('aria-label', 
+      language === 'sv' 
+        ? 'Byt språk från svenska till engelska' 
+        : 'Switch language from English to Swedish'
+    );
+    
+    // Update screen reader language status
+    const langStatus = document.getElementById('language-status');
+    langStatus.textContent = language === 'sv' 
+      ? 'Nuvarande språk: Svenska' 
+      : 'Current language: English';
+    
+    // Update page language
+    document.documentElement.lang = language;
     
     // Update tab texts
     document.getElementById('active-tab').textContent = language === 'sv' ? 'Aktiva VMA' : 'Active Alerts';
     document.getElementById('history-tab').textContent = language === 'sv' ? 'Historik' : 'History';
+    
+    // Update tab aria-labels
+    document.getElementById('alerts-container').setAttribute('aria-label', 
+      language === 'sv' ? 'Aktiva VMA-meddelanden' : 'Active VMA alerts');
+    document.getElementById('history-container').setAttribute('aria-label', 
+      language === 'sv' ? 'VMA-historik' : 'VMA history');
     
     // Update loading and no alerts texts
     document.querySelector('#loading p').textContent = language === 'sv' ? 'Hämtar VMA information...' : 'Loading VMA information...';
@@ -82,10 +162,14 @@ async function updateUIForLanguage(language) {
       lastCheckedSpan.textContent = lastCheckedTime;
     }
     
-    // Update acknowledge button
+    // Update acknowledge buttons
     const acknowledgeBtn = document.getElementById('acknowledge-btn');
+    const footerAcknowledgeBtn = document.getElementById('footer-acknowledge-btn');
     if (acknowledgeBtn) {
       acknowledgeBtn.textContent = language === 'sv' ? 'Kvittera VMA' : 'Acknowledge Alert';
+    }
+    if (footerAcknowledgeBtn) {
+      footerAcknowledgeBtn.textContent = language === 'sv' ? 'Kvittera VMA' : 'Acknowledge Alert';
     }
     
     const acknowledgeInfo = document.querySelector('.acknowledge-info');
@@ -111,7 +195,7 @@ async function updateUIForLanguage(language) {
     const isActive = statusTextEl.classList.contains('active');
     
     const statusContainer = document.querySelector('.status');
-    statusContainer.innerHTML = statusText;
+    statusContainer.innerHTML = `<span aria-label="${language === 'sv' ? 'VMA-status' : 'VMA status'}">${statusText}</span>`;
     statusContainer.appendChild(statusTextEl);
     
     statusTextEl.textContent = currentStatus === 'Normal' || currentStatus === 'Aktiv VMA' 
@@ -125,6 +209,20 @@ async function updateUIForLanguage(language) {
     versionEl.className = 'version-info';
     versionEl.textContent = `v${VERSION}`;
     statusContainer.appendChild(versionEl);
+    
+    // Update button aria-labels
+    document.getElementById('refresh-btn').setAttribute('aria-label',
+      language === 'sv' ? 'Uppdatera VMA-information' : 'Refresh VMA information');
+    document.getElementById('options-btn').setAttribute('aria-label',
+      language === 'sv' ? 'Öppna inställningar' : 'Open settings');
+    
+    // Update toolbar aria-label
+    document.querySelector('.actions').setAttribute('aria-label',
+      language === 'sv' ? 'Verktygsåtgärder' : 'Toolbar actions');
+    
+    // Update footer group aria-label
+    document.querySelector('.footer-buttons').setAttribute('aria-label',
+      language === 'sv' ? 'Åtgärdsknappar' : 'Action buttons');
     
     // Update test button text
     updateTestButton();
@@ -146,6 +244,7 @@ function setupEventListeners() {
   document.getElementById('options-btn').addEventListener('click', openOptions);
   document.getElementById('test-mode-btn').addEventListener('click', toggleTestMode);
   document.getElementById('acknowledge-btn').addEventListener('click', acknowledgeAlerts);
+  document.getElementById('footer-acknowledge-btn').addEventListener('click', acknowledgeAlerts);
   document.getElementById('active-tab').addEventListener('click', showActiveTab);
   document.getElementById('history-tab').addEventListener('click', showHistoryTab);
   document.getElementById('language-btn').addEventListener('click', toggleLanguage);
@@ -156,6 +255,12 @@ async function toggleLanguage() {
   try {
     // Toggle language
     currentLanguage = currentLanguage === 'sv' ? 'en' : 'sv';
+    
+    // Announce language change
+    const announcement = currentLanguage === 'sv' 
+      ? 'Språk ändrat till svenska' 
+      : 'Language changed to English';
+    announceToScreenReader(announcement, 'assertive');
     
     // Save to storage
     await chrome.storage.sync.set({ preferredLanguage: currentLanguage });
@@ -172,19 +277,49 @@ async function toggleLanguage() {
 
 // Visa fliken med aktiva VMA
 function showActiveTab() {
+  // Update tab states
   document.getElementById('active-tab').classList.add('active');
+  document.getElementById('active-tab').setAttribute('aria-selected', 'true');
+  document.getElementById('active-tab').setAttribute('tabindex', '0');
+  
   document.getElementById('history-tab').classList.remove('active');
+  document.getElementById('history-tab').setAttribute('aria-selected', 'false');
+  document.getElementById('history-tab').setAttribute('tabindex', '-1');
+  
+  // Update panel visibility
   document.getElementById('alerts-container').classList.remove('hidden');
   document.getElementById('history-container').classList.add('hidden');
+  
+  // Announce tab change
+  const announcement = currentLanguage === 'sv' 
+    ? 'Aktiva VMA-fliken vald' 
+    : 'Active VMA tab selected';
+  announceToScreenReader(announcement);
+  
   loadAlerts();
 }
 
 // Visa fliken med VMA-historik
 function showHistoryTab() {
+  // Update tab states
   document.getElementById('active-tab').classList.remove('active');
+  document.getElementById('active-tab').setAttribute('aria-selected', 'false');
+  document.getElementById('active-tab').setAttribute('tabindex', '-1');
+  
   document.getElementById('history-tab').classList.add('active');
+  document.getElementById('history-tab').setAttribute('aria-selected', 'true');
+  document.getElementById('history-tab').setAttribute('tabindex', '0');
+  
+  // Update panel visibility
   document.getElementById('alerts-container').classList.add('hidden');
   document.getElementById('history-container').classList.remove('hidden');
+  
+  // Announce tab change
+  const announcement = currentLanguage === 'sv' 
+    ? 'Historik-fliken vald' 
+    : 'History tab selected';
+  announceToScreenReader(announcement);
+  
   loadVmaHistory();
 }
 
@@ -241,8 +376,16 @@ async function loadAlerts() {
       document.getElementById('no-alerts').classList.remove('hidden');
       document.getElementById('alerts-list').classList.add('hidden');
       document.getElementById('acknowledge-container').classList.add('hidden');
+      document.getElementById('footer-acknowledge-btn').classList.add('hidden');
       document.getElementById('status-text').textContent = currentLanguage === 'sv' ? 'Normal' : 'Normal';
       document.getElementById('status-text').classList.remove('active');
+      
+      // Announce no alerts
+      const announcement = currentLanguage === 'sv' 
+        ? 'Inga aktiva VMA för tillfället' 
+        : 'No active VMA alerts at the moment';
+      announceToScreenReader(announcement);
+      
       return;
     }
     
@@ -253,18 +396,37 @@ async function loadAlerts() {
     document.getElementById('status-text').textContent = currentLanguage === 'sv' ? 'Aktiv VMA' : 'Active VMA';
     document.getElementById('status-text').classList.add('active');
     
+    // Announce active alerts
+    const count = activeAlerts.length;
+    const announcement = currentLanguage === 'sv' 
+      ? `${count} aktiv${count === 1 ? 't' : 'a'} VMA hittad${count === 1 ? '' : 'e'}`
+      : `${count} active VMA alert${count === 1 ? '' : 's'} found`;
+    announceToScreenReader(announcement, 'assertive');
+    
     // Check if we have severe alerts to show acknowledge button
+    // But don't show it for test alerts
     const hasSevere = activeAlerts.some(alert => {
       if (!alert.info || alert.info.length === 0) return false;
+      // Don't count test alerts
+      if (alert.status === 'Test') return false;
       return alert.info.some(info => 
         info.severity === 'Extreme' || info.severity === 'Severe'
       );
     });
     
+    // Show/hide acknowledge buttons in both popup and footer
     if (hasSevere) {
       document.getElementById('acknowledge-container').classList.remove('hidden');
+      document.getElementById('footer-acknowledge-btn').classList.remove('hidden');
+      
+      // Announce severe alert
+      const severeAnnouncement = currentLanguage === 'sv' 
+        ? 'Allvarligt VMA aktivt. Kvittera för att tysta notifieringar.' 
+        : 'Severe VMA active. Acknowledge to silence notifications.';
+      announceToScreenReader(severeAnnouncement, 'assertive');
     } else {
       document.getElementById('acknowledge-container').classList.add('hidden');
+      document.getElementById('footer-acknowledge-btn').classList.add('hidden');
     }
     
     // Clear previous alerts
@@ -329,11 +491,25 @@ async function loadVmaHistory() {
     if (filteredHistory.length === 0) {
       document.getElementById('history-list').classList.add('hidden');
       document.getElementById('no-history').classList.remove('hidden');
+      
+      // Announce no history
+      const announcement = currentLanguage === 'sv' 
+        ? 'Ingen VMA-historik tillgänglig' 
+        : 'No VMA history available';
+      announceToScreenReader(announcement);
+      
       return;
     }
     
     document.getElementById('history-list').classList.remove('hidden');
     document.getElementById('no-history').classList.add('hidden');
+    
+    // Announce history count
+    const count = filteredHistory.length;
+    const announcement = currentLanguage === 'sv' 
+      ? `${count} VMA i historiken`
+      : `${count} VMA alert${count === 1 ? '' : 's'} in history`;
+    announceToScreenReader(announcement);
     
     // Rensa tidigare historik
     const historyList = document.getElementById('history-list');
@@ -351,7 +527,7 @@ async function loadVmaHistory() {
   }
 }
 
-// Create DOM element for an alert
+// Create DOM element for an alert with accessibility improvements
 function createAlertElement(alert, isHistory = false, preferredLanguage = 'sv') {
   try {
     const template = document.getElementById('alert-template');
@@ -362,25 +538,38 @@ function createAlertElement(alert, isHistory = false, preferredLanguage = 'sv') 
     if (alert.status === 'Test') {
       alertType.textContent = currentLanguage === 'sv' ? 'Test VMA' : 'Test Alert';
       alertType.classList.add('test');
+      alertType.setAttribute('aria-label', 
+        currentLanguage === 'sv' ? 'VMA-typ: Test' : 'VMA type: Test');
     } else {
       alertType.textContent = 'VMA';
+      alertType.setAttribute('aria-label', 
+        currentLanguage === 'sv' ? 'VMA-typ: Viktigt meddelande' : 'VMA type: Important announcement');
       
       // Set severity class if available
       if (alert.info && alert.info.length > 0) {
         const severity = alert.info[0].severity;
         if (severity === 'Minor') {
           alertType.classList.add('minor');
+          alertType.setAttribute('aria-label', 
+            alertType.getAttribute('aria-label') + (currentLanguage === 'sv' ? ', Mindre allvarlig' : ', Minor severity'));
         } else if (severity === 'Moderate') {
           alertType.classList.add('major');
+          alertType.setAttribute('aria-label', 
+            alertType.getAttribute('aria-label') + (currentLanguage === 'sv' ? ', Allvarlig' : ', Major severity'));
         } else if (severity === 'Severe' || severity === 'Extreme') {
           alertType.classList.add('severe');
+          alertType.setAttribute('aria-label', 
+            alertType.getAttribute('aria-label') + (currentLanguage === 'sv' ? ', Mycket allvarlig' : ', Severe'));
         }
       }
     }
     
-    // Set timestamp
+    // Set timestamp with accessibility
     const date = new Date(alert.sent);
-    alertElement.querySelector('.alert-time').textContent = date.toLocaleString();
+    const timeElement = alertElement.querySelector('.alert-time');
+    timeElement.textContent = date.toLocaleString();
+    timeElement.setAttribute('aria-label', 
+      (currentLanguage === 'sv' ? 'Tidpunkt: ' : 'Time: ') + date.toLocaleString());
     
     // Om det är ett historik-objekt, lägg till utgångsdatum
     if (isHistory && alert.expiredAt) {
@@ -388,7 +577,9 @@ function createAlertElement(alert, isHistory = false, preferredLanguage = 'sv') 
       const alertHeader = alertElement.querySelector('.alert-header');
       const expiredEl = document.createElement('span');
       expiredEl.classList.add('alert-expired');
-      expiredEl.textContent = (currentLanguage === 'sv' ? 'Avslutades: ' : 'Ended: ') + expiredDate.toLocaleString();
+      const expiredText = (currentLanguage === 'sv' ? 'Avslutades: ' : 'Ended: ') + expiredDate.toLocaleString();
+      expiredEl.textContent = expiredText;
+      expiredEl.setAttribute('aria-label', expiredText);
       alertHeader.appendChild(expiredEl);
     }
     
@@ -402,6 +593,9 @@ function createAlertElement(alert, isHistory = false, preferredLanguage = 'sv') 
         const langIndicator = document.createElement('span');
         langIndicator.classList.add('alert-language', langCode);
         langIndicator.textContent = langCode.toUpperCase();
+        langIndicator.setAttribute('aria-label', 
+          (currentLanguage === 'sv' ? 'Språk: ' : 'Language: ') + 
+          (langCode === 'sv' ? 'Svenska' : 'English'));
         alertType.appendChild(langIndicator);
       }
       
@@ -456,6 +650,12 @@ function refreshAlerts() {
   document.getElementById('no-alerts').classList.add('hidden');
   document.getElementById('alerts-list').classList.add('hidden');
   
+  // Announce refresh to screen reader
+  const announcement = currentLanguage === 'sv' 
+    ? 'Uppdaterar VMA-information' 
+    : 'Refreshing VMA information';
+  announceToScreenReader(announcement);
+  
   chrome.runtime.sendMessage({ action: 'checkForAlerts' }, function(response) {
     if (response && response.success) {
       loadAlerts();
@@ -485,6 +685,12 @@ function toggleTestMode() {
   
   console.log('Toggling test mode, current state: ' + testMode);
   
+  // Announce test mode toggle
+  const announcement = currentLanguage === 'sv' 
+    ? (testMode ? 'Avaktiverar testläge' : 'Aktiverar testläge')
+    : (testMode ? 'Deactivating test mode' : 'Activating test mode');
+  announceToScreenReader(announcement);
+  
   chrome.runtime.sendMessage({ action: 'testAlert' }, function(response) {
     console.log('Test mode toggle response received');
     
@@ -512,9 +718,11 @@ function updateTestButton() {
   if (testMode) {
     button.textContent = currentLanguage === 'sv' ? 'Avaktivera test' : 'Deactivate Test';
     button.style.backgroundColor = '#666';
+    button.setAttribute('aria-describedby', 'test-mode-description');
   } else {
     button.textContent = currentLanguage === 'sv' ? 'Testa VMA' : 'Test VMA';
     button.style.backgroundColor = '#0077ff';
+    button.setAttribute('aria-describedby', 'test-mode-description');
   }
 }
 
@@ -572,18 +780,33 @@ async function acknowledgeAlerts() {
     // Aktivera tyst läge (stänger av badge-text men behåller röd ikon)
     chrome.runtime.sendMessage({ action: 'silenceAlerts' });
     
-    // Hide the acknowledge button
+    // Hide the acknowledge buttons
     document.getElementById('acknowledge-container').classList.add('hidden');
+    document.getElementById('footer-acknowledge-btn').classList.add('hidden');
+    
+    // Announce acknowledgment
+    const announcement = currentLanguage === 'sv' 
+      ? 'VMA kvitterat. Notifieringar är nu avstängda.' 
+      : 'VMA acknowledged. Notifications are now silenced.';
+    announceToScreenReader(announcement, 'assertive');
     
     // Show confirmation
     const btn = document.getElementById('acknowledge-btn');
+    const footerBtn = document.getElementById('footer-acknowledge-btn');
+    
     btn.textContent = currentLanguage === 'sv' ? 'VMA Kvitterat' : 'Alert Acknowledged';
     btn.style.backgroundColor = '#28a745';
+    
+    footerBtn.textContent = currentLanguage === 'sv' ? 'VMA Kvitterat' : 'Alert Acknowledged';
+    footerBtn.style.backgroundColor = '#28a745';
     
     // Reset after 2 seconds
     setTimeout(function() {
       btn.textContent = currentLanguage === 'sv' ? 'Kvittera VMA' : 'Acknowledge Alert';
       btn.style.backgroundColor = '#ff0000';
+      
+      footerBtn.textContent = currentLanguage === 'sv' ? 'Kvittera VMA' : 'Acknowledge Alert';
+      footerBtn.style.backgroundColor = '#ff0000';
     }, 2000);
     
     // Close the popup window if it was created by the background script

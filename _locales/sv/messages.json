@@ -160,7 +160,7 @@
     "description": "Informationstext om historik"
   },
   "whatsNewTitle": {
-    "message": "Nyheter i version 1.1",
+    "message": "Nyheter i version 1.2",
     "description": "Titel för nyheter i versionen"
   },
   "languageButtonTitle": {
@@ -174,5 +174,149 @@
   "usesApi": {
     "message": "Använder",
     "description": "Text för 'Använder' i footern"
+  },
+  "accessibilityImproved": {
+    "message": "Förbättrad tillgänglighet för skärmläsare och tangentbordsnavigering",
+    "description": "Tillgänglighetsförbättringar i version 1.2"
+  },
+  "ariaLabelsAdded": {
+    "message": "ARIA-etiketter och live regions för bättre skärmläsarstöd",
+    "description": "ARIA-etiketter tillagda i version 1.2"
+  },
+  "keyboardNavigation": {
+    "message": "Tangentbordsgenvägar och fokusindikatorer",
+    "description": "Tangentbordsnavigering i version 1.2"
+  },
+  "highContrastSupport": {
+    "message": "Stöd för \"high contrast\" och \"reduced motion\" preferenser",
+    "description": "Stöd för tillgänglighetsalternativ i version 1.2"
+  },
+  "screenReaderAnnouncements": {
+    "message": "Förbättrade notifikationer till skärmläsare",
+    "description": "Skärmläsarmeddelanden i version 1.2"
+  },
+  "betterContentStructure": {
+    "message": "Bättre strukturering av innehåll för hjälpmedel",
+    "description": "Förbättrad innehållsstruktur i version 1.2"
+  },
+  "vmaStatusLabel": {
+    "message": "VMA-status",
+    "description": "Etikett för VMA-status för skärmläsare"
+  },
+  "toolbarActionsLabel": {
+    "message": "Verktygsåtgärder",
+    "description": "Etikett för verktygsraden för skärmläsare"
+  },
+  "actionButtonsLabel": {
+    "message": "Åtgärdsknappar",
+    "description": "Etikett för åtgärdsknappar för skärmläsare"
+  },
+  "refreshButtonLabel": {
+    "message": "Uppdatera VMA-information",
+    "description": "Etikett för uppdateringsknappen för skärmläsare"
+  },
+  "settingsButtonLabel": {
+    "message": "Öppna inställningar",
+    "description": "Etikett för inställningsknappen för skärmläsare"
+  },
+  "languageToggleLabel": {
+    "message": "Byt språk från svenska till engelska",
+    "description": "Etikett för språkväxlingsknappen för skärmläsare"
+  },
+  "currentLanguageSwedish": {
+    "message": "Nuvarande språk: Svenska",
+    "description": "Meddelande om nuvarande språk för skärmläsare"
+  },
+  "currentLanguageEnglish": {
+    "message": "Nuvarande språk: Engelska",
+    "description": "Meddelande om nuvarande språk för skärmläsare"
+  },
+  "activeTabSelected": {
+    "message": "Aktiva VMA-fliken vald",
+    "description": "Meddelande när aktiva VMA-fliken väljs"
+  },
+  "historyTabSelected": {
+    "message": "Historik-fliken vald",
+    "description": "Meddelande när historik-fliken väljs"
+  },
+  "alertsFound": {
+    "message": "aktiva VMA hittade",
+    "description": "Meddelande om antal aktiva VMA för skärmläsare"
+  },
+  "alertFound": {
+    "message": "aktivt VMA hittat",
+    "description": "Meddelande om ett aktivt VMA för skärmläsare"
+  },
+  "severeAlertActive": {
+    "message": "Allvarligt VMA aktivt. Kvittera för att tysta notifieringar.",
+    "description": "Meddelande om allvarligt VMA för skärmläsare"
+  },
+  "alertAcknowledged": {
+    "message": "VMA kvitterat. Notifieringar är nu avstängda.",
+    "description": "Bekräftelse om kvitterat VMA för skärmläsare"
+  },
+  "languageChangedToSwedish": {
+    "message": "Språk ändrat till svenska",
+    "description": "Meddelande om språkändring till svenska"
+  },
+  "languageChangedToEnglish": {
+    "message": "Språk ändrat till engelska",
+    "description": "Meddelande om språkändring till engelska"
+  },
+  "refreshingInformation": {
+    "message": "Uppdaterar VMA-information",
+    "description": "Meddelande när VMA-information uppdateras"
+  },
+  "activatingTestMode": {
+    "message": "Aktiverar testläge",
+    "description": "Meddelande när testläge aktiveras"
+  },
+  "deactivatingTestMode": {
+    "message": "Avaktiverar testläge",
+    "description": "Meddelande när testläge avaktiveras"
+  },
+  "vmaHistoryCount": {
+    "message": "VMA i historiken",
+    "description": "Antal VMA i historiken för skärmläsare"
+  },
+  "vmaTypeLabel": {
+    "message": "VMA-typ:",
+    "description": "Etikett för VMA-typ för skärmläsare"
+  },
+  "timeLabel": {
+    "message": "Tidpunkt:",
+    "description": "Etikett för tidpunkt för skärmläsare"
+  },
+  "languageLabel": {
+    "message": "Språk:",
+    "description": "Etikett för språk för skärmläsare"
+  },
+  "minorSeverity": {
+    "message": "Mindre allvarlig",
+    "description": "Mindre allvarlighetsgrad för skärmläsare"
+  },
+  "majorSeverity": {
+    "message": "Allvarlig",
+    "description": "Allvarlig allvarlighetsgrad för skärmläsare"
+  },
+  "severeSeverity": {
+    "message": "Mycket allvarlig",
+    "description": "Mycket allvarlig allvarlighetsgrad för skärmläsare"
+  },
+  "testVmaType": {
+    "message": "VMA-typ: Test",
+    "description": "Test VMA-typ för skärmläsare"
+  },
+  "importantAnnouncementType": {
+    "message": "VMA-typ: Viktigt meddelande",
+    "description": "Viktigt meddelande VMA-typ för skärmläsare"
+  },
+  "testModeDescription": {
+    "message": "Aktivera testläge för att simulera ett VMA-meddelande och testa extensionens funktionalitet",
+    "description": "Beskrivning av testläge för skärmläsare"
+  },
+  "saveSettingsDescription": {
+    "message": "Sparar inställningarna och uppdaterar VMA-övervakningen enligt dina val",
+    "description": "Beskrivning av spara-knappen för skärmläsare"
   }
 }

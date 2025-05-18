@@ -222,16 +222,39 @@ footer {
   border-top: 1px solid #ddd;
 }
 
-#test-mode-btn {
+.footer-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.footer-buttons button {
   background-color: #0077ff;
   color: white;
   border-radius: 4px;
-  padding: 6px 10px;
+  padding: 6px 12px;
   font-size: 13px;
+  font-weight: 500;
+  min-width: 80px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#test-mode-btn {
+  background-color: #0077ff;
 }
 
 #test-mode-btn:hover {
   background-color: #0066dd;
+}
+
+#footer-acknowledge-btn {
+  background-color: #ff0000;
+}
+
+#footer-acknowledge-btn:hover {
+  background-color: #cc0000;
 }
 
 .status {
@@ -287,4 +310,50 @@ footer {
   margin-top: 5px;
   color: #888;
   font-style: italic;
+}
+
+/* Screen reader only content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Focus indicators for keyboard navigation */
+button:focus,
+.tab-button:focus {
+  outline: 2px solid #054a91;
+  outline-offset: 2px;
+}
+
+/* High contrast mode improvements */
+@media (prefers-contrast: high) {
+  .alert {
+    border: 2px solid #333;
+  }
+  
+  .alert-type {
+    border: 1px solid currentColor;
+  }
+  
+  button {
+    border: 2px solid currentColor;
+  }
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  button {
+    transition: none;
+  }
+  
+  .tab-button {
+    transition: none;
+  }
 }

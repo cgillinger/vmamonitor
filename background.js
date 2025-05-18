@@ -7,7 +7,7 @@ const STARTUP_DELAY = 15000; // milliseconds - wait 15 seconds before first chec
 const DEBUG = false; // Set to false in production
 const OLD_ALERT_THRESHOLD = 3 * 24 * 60 * 60 * 1000; // 3 days in milliseconds
 const MAX_HISTORY_ITEMS = 3; // Antal VMA som ska sparas i historiken
-const VERSION = '1.1'; // Current extension version
+const VERSION = '1.2'; // Updated to version 1.2
 
 // Track blinking state
 let blinkingTimer = null;
@@ -299,8 +299,8 @@ function startTwoBadgeBlink(iconType, isSilent = false) {
   }
 }
 
-// Create a detailed notification for a VMA - Edge-optimerad
-async function createDetailedNotification(alert) {
+// Create a single notification for a VMA
+async function createVMANotification(alert) {
   if (!alert || !alert.info || alert.info.length === 0) {
     return;
   }
@@ -315,27 +315,28 @@ async function createDetailedNotification(alert) {
     const title = info.event || chrome.i18n.getMessage('notificationTitle');
     let message = info.description || chrome.i18n.getMessage('noDetailedInfo');
     
-    // Trim message if too long (Edge can have different limits)
-    if (message.length > 100) {
-      message = message.substring(0, 97) + '...';
+    // Trim message if too long
+    if (message.length > 150) {
+      message = message.substring(0, 147) + '...';
     }
     
     // Add area information if available
-    let areas = '';
+    let contextMessage = '';
     if (info.area && info.area.length > 0) {
-      areas = info.area.map(a => a.areaDesc).join(', ');
+      const areas = info.area.map(a => a.areaDesc).join(', ');
+      contextMessage = `${chrome.i18n.getMessage('affectedAreas')}: ${areas}`;
     }
     
-    // Create detailed notification with Edge-specific options
-    chrome.notifications.create('vma-alert-details', {
+    // Create single notification
+    chrome.notifications.create('vma-alert', {
       type: 'basic',
       iconUrl: 'icons/lamp-red-128.png',
       title: title,
       message: message,
-      contextMessage: areas ? `${chrome.i18n.getMessage('affectedAreas')}: ${areas}` : '',
+      contextMessage: contextMessage,
       priority: 2,
-      requireInteraction: true,  // Notification stays until dismissed
-      silent: false  // Make sure sound plays in Edge
+      requireInteraction: true,
+      silent: false
     });
   } catch (error) {
     logger.error('Error creating notification:', error);
@@ -373,16 +374,22 @@ function findBestMatchingInfo(infoArray, preferredLanguage) {
   return infoArray[0];
 }
 
-// Check if we should auto-open the popup for severe alerts
-async function checkIfShouldAutoOpenPopup(alerts) {
+// Check if we should create notification for severe alerts
+async function checkIfShouldCreateNotification(alerts) {
   if (!browserReady) {
-    logger.info('Browser not ready, skipping popup check');
+    logger.info('Browser not ready, skipping notification check');
     return;
   }
   
   try {
-    // Get the list of acknowledged alerts
-    const { acknowledgedAlerts = [] } = await chrome.storage.local.get(['acknowledgedAlerts']);
+    // Get the list of acknowledged alerts and silent mode
+    const { acknowledgedAlerts = [], silentMode = false } = await chrome.storage.local.get(['acknowledgedAlerts', 'silentMode']);
+    
+    // If already in silent mode, don't create new notifications
+    if (silentMode) {
+      logger.info('Silent mode active, skipping notification');
+      return;
+    }
     
     // Filter severe alerts
     const severeAlerts = alerts.filter(alert => {
@@ -406,26 +413,11 @@ async function checkIfShouldAutoOpenPopup(alerts) {
       return; // No severe unacknowledged alerts
     }
     
-    // Create a detailed notification for the first unacknowledged severe alert
-    createDetailedNotification(unacknowledgedSevereAlerts[0]);
+    // Create a single notification for the first unacknowledged severe alert
+    createVMANotification(unacknowledgedSevereAlerts[0]);
     
-    // Also create a basic notification encouraging to click the icon
-    try {
-      const { preferredLanguage = 'sv' } = await chrome.storage.sync.get(['preferredLanguage']);
-      
-      chrome.notifications.create('vma-alert', {
-        type: 'basic',
-        iconUrl: 'icons/lamp-red-128.png',
-        title: chrome.i18n.getMessage('importantMessage'),
-        message: chrome.i18n.getMessage('clickForMoreInfo'),
-        priority: 2,
-        silent: false
-      });
-    } catch (error) {
-      logger.error('Error creating notification:', error);
-    }
   } catch (error) {
-    logger.error('Error checking acknowledged alerts:', error);
+    logger.error('Error checking for notifications:', error);
   }
 }
 
@@ -653,7 +645,7 @@ async function processAlerts(alerts, isTestMode) {
     // No active alerts, set default icon
     chrome.action.setIcon({ path: ICONS.default });
     chrome.action.setBadgeText({ text: '' });
-    chrome.storage.local.set({ activeAlerts: [] });
+    chrome.storage.local.set({ activeAlerts: [], silentMode: false }); // Reset silent mode
     
     // Stop blinking if it was active
     if (blinkingTimer) {
@@ -708,9 +700,9 @@ function determineIconType(alerts) {
     }
   }
   
-  // Check if we need to auto-open the popup for severe alerts
+  // Check if we need to create notification for severe alerts
   if (hasSevere) {
-    checkIfShouldAutoOpenPopup(alerts);
+    checkIfShouldCreateNotification(alerts);
   }
   
   return highestSeverity;
@@ -747,17 +739,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // Aktivera tyst läge för aktuella VMA (efter kvittering)
 async function enableSilentMode() {
   try {
+    // Clear all existing notifications first
+    chrome.notifications.getAll((notifications) => {
+      Object.keys(notifications).forEach(notificationId => {
+        chrome.notifications.clear(notificationId);
+      });
+    });
+    
     // Hämta aktuell ikon-typ
     const { activeAlerts = [] } = await chrome.storage.local.get(['activeAlerts']);
     
     // Sätt tyst läge i storage
     await chrome.storage.local.set({ silentMode: true });
     
-    // Uppdatera badge till tyst läge
+    // Uppdatera badge till tyst läge (ingen blinking, ingen text)
     if (activeAlerts.length > 0) {
       const iconType = determineIconType(activeAlerts);
       startTwoBadgeBlink(iconType, true); // True = tyst läge
     }
+    
+    logger.important('Silent mode enabled - notifications cleared and blinking stopped');
   } catch (error) {
     logger.error('Error enabling silent mode:', error);
   }
@@ -768,6 +769,9 @@ function testAlertMode() {
   chrome.storage.sync.get('testMode', (result) => {
     const testMode = !result.testMode;
     logger.info(`Toggling test mode: ${testMode}`);
+    
+    // Reset silent mode when changing test mode
+    chrome.storage.local.set({ silentMode: false });
     
     // Force blue icon when entering test mode
     if (testMode) {
@@ -786,11 +790,10 @@ function testAlertMode() {
   });
 }
 
-// Handle notification clicks - Edge-anpassad
+// Handle notification clicks
 chrome.notifications.onClicked.addListener((notificationId) => {
   if (notificationId === 'vma-alert' || notificationId === 'vma-alert-details') {
     // När notifikationen klickas, öppna tilläggets popup
-    // I Edge kan vi behöva göra detta på ett säkrare sätt
     try {
       chrome.action.openPopup();
     } catch (error) {
