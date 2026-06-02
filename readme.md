@@ -2,6 +2,8 @@
 
 VMA Notifieringar är ett tillägg för Microsoft Edge som övervakar Viktigt Meddelande till Allmänheten (VMA) och visar aktuella varningar direkt i din webbläsare.
 
+> Det här är ett personligt hobbyprojekt som jag byggt för eget bruk och lagt upp ifall det är till nytta för någon annan. Jag jobbar på det på fritiden, så issues och PR:ar är välkomna men svar kan dröja. Använd på egen risk.
+
 ![VMA Notifieringar-ikon](icons/lamp-green-48.png)
 
 ## Vad är VMA?
