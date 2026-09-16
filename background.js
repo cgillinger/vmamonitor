@@ -31,9 +31,8 @@ const BANNER_SCRIPT_FILE = 'content/banner.js';
 // deterministic static state first; blinking is a best-effort enhancement.
 let blinkingTimer = null;
 
-// Icon paths for different alert states.
-// NOTE: lamp-orange-* files are not yet in the repo. setIconSafe() falls back
-// to the red icon until they are added.
+// Icon paths for different alert states. setIconSafe() falls back to the red
+// icon if a file should be missing.
 const ICONS = {
   default: {
     16: 'icons/lamp-green-16.png',

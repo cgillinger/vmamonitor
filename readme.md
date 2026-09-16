@@ -156,8 +156,6 @@ Begränsningar: balken kan inte visas på webbläsarens egna sidor (ny flik, ins
 - `https://vmaapi.sr.se/*`: hämta VMA-data
 - `http://*/*`, `https://*/*` (**valfri**, `optional_host_permissions`): begärs endast när användaren aktiverar varningsbalken och tas bort när den stängs av
 
-### Kända brister
-- Ikonen för allvarlighetsgraden "Moderate" (orange) saknas i `icons/`. Koden faller tillbaka på den röda ikonen tills `lamp-orange-16/32/48/128.png` läggs till
 
 ### Språkstöd
 - Från november 2024 tillhandahåller Sveriges Radio engelska översättningar för VMA
