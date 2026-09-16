@@ -188,7 +188,7 @@
     "description": "Checkbox label"
   },
   "bannerHint": {
-    "message": "Optional. Requires permission for the extension to read and change the web pages you visit, because the bar is inserted into the page itself. The permission is used only to show the bar. The bar cannot appear on the browser's own pages (e.g. new tab or settings) or in full-screen mode. The icon and notifications keep working regardless.",
+    "message": "Optional. The bar is inserted into the web pages you visit, so the browser asks for permission to read and change pages. The permission is used for the bar only. Not shown on the browser's own pages (e.g. new tab) or in full screen. Icon and notifications work as usual.",
     "description": "Help text for the banner setting"
   },
   "bannerEnabled": {

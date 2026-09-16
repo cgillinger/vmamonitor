@@ -328,7 +328,7 @@
     "description": "Etikett för kryssrutan"
   },
   "bannerHint": {
-    "message": "Valfritt. Kräver att tillägget får läsa och ändra webbsidor du besöker, eftersom balken läggs in på själva sidan. Behörigheten används enbart för att visa balken. Balken kan inte visas på webbläsarens egna sidor (t.ex. ny flik eller inställningar) eller i helskärmsläge. Ikonen och notifieringarna fungerar som vanligt oavsett.",
+    "message": "Valfritt. Balken läggs in på webbsidorna du besöker, därför ber webbläsaren om tillstånd att läsa och ändra sidor. Tillståndet används bara till balken. Visas inte på webbläsarens egna sidor (t.ex. ny flik) eller i helskärm. Ikon och notifieringar fungerar som vanligt.",
     "description": "Hjälptext för balk-inställningen"
   },
   "bannerEnabled": {
