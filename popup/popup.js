@@ -174,8 +174,8 @@ async function updateUIForLanguage(language) {
     const acknowledgeInfo = document.querySelector('.acknowledge-info');
     if (acknowledgeInfo) {
       acknowledgeInfo.textContent = language === 'sv' 
-        ? 'Kvittera för att stoppa blinkande notifiering men behålla röd varningsikon'
-        : 'Acknowledge to stop blinking notification but keep the red warning icon';
+        ? 'Kvittera för att stoppa blinkande notifiering men behålla varningsikonen'
+        : 'Acknowledge to stop the blinking notification but keep the warning icon';
     }
     
     // Update history container text
@@ -370,20 +370,22 @@ async function loadAlerts() {
       : `${count} active VMA alert${count === 1 ? '' : 's'} found`;
     announceToScreenReader(announcement, 'assertive');
     
-    // Check if we have severe alerts to show acknowledge button
-    // But don't show it for test alerts
+    // Every real (non-test) alert can be acknowledged, whatever its severity:
+    // the badge blinks for all of them, so all of them must be silenceable.
+    const hasRealAlerts = activeAlerts.some(alert => alert.status !== 'Test');
     const hasSevere = activeAlerts.some(alert => alert.status !== 'Test' && isSevereAlert(alert));
     
     // Show/hide acknowledge buttons in both popup and footer
-    if (hasSevere) {
+    if (hasRealAlerts) {
       document.getElementById('acknowledge-container').classList.remove('hidden');
       document.getElementById('footer-acknowledge-btn').classList.remove('hidden');
       
-      // Announce severe alert
-      const severeAnnouncement = currentLanguage === 'sv' 
-        ? 'Allvarligt VMA aktivt. Kvittera för att tysta notifieringar.' 
-        : 'Severe VMA active. Acknowledge to silence notifications.';
-      announceToScreenReader(severeAnnouncement, 'assertive');
+      if (hasSevere) {
+        const severeAnnouncement = currentLanguage === 'sv' 
+          ? 'Allvarligt VMA aktivt. Kvittera för att tysta notifieringar.' 
+          : 'Severe VMA active. Acknowledge to silence notifications.';
+        announceToScreenReader(severeAnnouncement, 'assertive');
+      }
     } else {
       document.getElementById('acknowledge-container').classList.add('hidden');
       document.getElementById('footer-acknowledge-btn').classList.add('hidden');
@@ -652,14 +654,13 @@ async function acknowledgeAlerts() {
     const activeAlerts = storage.activeAlerts || [];
     const acknowledgedAlerts = storage.acknowledgedAlerts || [];
     
-    // Add current severe alert IDs to acknowledged list with timestamps
+    // Add all current real alert IDs to the acknowledged list with timestamps
     const now = Date.now();
-    const severeAlertIds = [];
+    const alertIdsToAcknowledge = [];
     
-    // Find severe alerts
     for (const alert of activeAlerts) {
-      if (isSevereAlert(alert)) {
-        severeAlertIds.push(alert.identifier + '::' + now);
+      if (alert.status !== 'Test' && alert.identifier) {
+        alertIdsToAcknowledge.push(alert.identifier + '::' + now);
       }
     }
     
@@ -677,8 +678,8 @@ async function acknowledgeAlerts() {
     const newAcknowledgedAlerts = acknowledgedAlerts.slice();
     
     // Add only alerts that aren't already acknowledged
-    for (let i = 0; i < severeAlertIds.length; i++) {
-      const newAlert = severeAlertIds[i];
+    for (let i = 0; i < alertIdsToAcknowledge.length; i++) {
+      const newAlert = alertIdsToAcknowledge[i];
       const alertId = newAlert.split('::')[0];
       if (!existingIds.includes(alertId)) {
         newAcknowledgedAlerts.push(newAlert);

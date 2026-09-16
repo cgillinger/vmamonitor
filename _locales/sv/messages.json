@@ -36,7 +36,7 @@
     "description": "Text på kvitteringsknappen"
   },
   "acknowledgeInfoText": {
-    "message": "Kvittera för att stoppa blinkande notifiering men behålla röd varningsikon",
+    "message": "Kvittera för att stoppa blinkande notifiering men behålla varningsikonen",
     "description": "Förklarande text för kvittering"
   },
   "acknowledgedConfirmation": {

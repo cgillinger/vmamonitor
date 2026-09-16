@@ -36,7 +36,7 @@
     "description": "Text on acknowledge button"
   },
   "acknowledgeInfoText": {
-    "message": "Acknowledge to stop blinking notification but keep the red warning icon",
+    "message": "Acknowledge to stop the blinking notification but keep the warning icon",
     "description": "Explanatory text for acknowledgment"
   },
   "acknowledgedConfirmation": {

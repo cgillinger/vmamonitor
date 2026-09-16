@@ -44,6 +44,7 @@ VMA (Viktigt Meddelande till Allmänheten) är ett varningssystem som används i
 - **Stabil ikon och badge**: Märket i verktygsfältet hamnar alltid i ett tydligt läge även om webbläsaren pausar tillägget
 - **Ett versionsnummer**: Versionen hämtas från `manifest.json` överallt, i stället för att vara hårdkodad på fem ställen
 - **Inställningssidan följer valt språk**: Tidigare följde den webbläsarens språk oavsett vad du valt
+- **Kvittering för alla grader**: Även mindre allvarliga VMA kan kvitteras i popupen, tidigare blinkade märket utan möjlighet att tysta det
 - **Kodstädning**: Gemensam hjälpmodul (`shared/vma-utils.js`), borttagna paketerade zip-filer ur repot, MIT-licensfil tillagd
 
 ### Version 1.2 (May 2025)
@@ -120,7 +121,7 @@ Begränsningar: balken kan inte visas på webbläsarens egna sidor (ny flik, ins
 1. Ikonen ändrar färg baserat på VMA:ets allvarlighetsgrad
 2. En notifiering visas
 3. Klicka på ikonen för att se detaljerad information
-4. För allvarliga VMA kan du klicka på "Kvittera VMA" för att tysta notifieringen men behålla varningsikonen
+4. Klicka på "Kvittera VMA" för att tysta blinkning och notifieringar men behålla varningsikonen. Gäller alla allvarlighetsgrader
 
 ### Historikfunktion:
 1. Klicka på "Historik"-fliken i popup-fönstret
