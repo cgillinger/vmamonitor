@@ -3,6 +3,7 @@ import {
   findBestMatchingInfo,
   isSevereAlert,
   isAcknowledged,
+  stripAckTimestamp,
   determineIconType,
   compareVersions,
   getExtensionVersion
@@ -699,14 +700,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
       return true;
 
-    case 'dismissBanner': {
-      // From the content script: hide the banner for these alerts in all tabs
+    case 'acknowledgeAlerts': {
+      // From the page banner: same effect as "Kvittera VMA" in the popup.
       const ids = Array.isArray(message.identifiers) ? message.identifiers.filter(id => typeof id === 'string') : [];
-      chrome.storage.local.get(['bannerDismissed']).then(({ bannerDismissed = [] }) => {
-        const merged = Array.from(new Set([...bannerDismissed, ...ids]));
-        return chrome.storage.local.set({ bannerDismissed: merged });
-      }).then(() => sendResponse({ success: true }))
-        .catch(() => sendResponse({ success: false }));
+      acknowledgeAlerts(ids)
+        .then(() => sendResponse({ success: true }))
+        .catch(error => {
+          logger.error('Error acknowledging alerts', error);
+          sendResponse({ success: false });
+        });
       return true;
     }
 
@@ -714,6 +716,34 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return false;
   }
 });
+
+// Kvittera VMA från varningsbalken. Samma effekt som knappen i popupen:
+// larmen markeras som kvitterade och tyst läge slås på, vilket får balken att
+// försvinna i alla flikar via storage-ändringen.
+async function acknowledgeAlerts(identifiers) {
+  const { activeAlerts = [], acknowledgedAlerts = [], bannerDismissed = [] } =
+    await chrome.storage.local.get(['activeAlerts', 'acknowledgedAlerts', 'bannerDismissed']);
+
+  // Kvittera de larm balken faktiskt visade, annars alla aktiva.
+  const wanted = identifiers.length > 0
+    ? new Set(identifiers)
+    : new Set(activeAlerts.map(alert => alert.identifier));
+
+  const alreadyAcknowledged = new Set(acknowledgedAlerts.map(stripAckTimestamp));
+  const now = Date.now();
+  const additions = activeAlerts
+    .filter(alert => wanted.has(alert.identifier) && !alreadyAcknowledged.has(alert.identifier))
+    .map(alert => `${alert.identifier}::${now}`);
+
+  await chrome.storage.local.set({
+    acknowledgedAlerts: [...acknowledgedAlerts, ...additions],
+    // Håll balken borta för just de här larmen även om tyst läge nollställs.
+    bannerDismissed: Array.from(new Set([...bannerDismissed, ...wanted]))
+  });
+
+  await enableSilentMode();
+  logger.important(`Acknowledged ${additions.length} alert(s) from page banner`);
+}
 
 // Aktivera tyst läge för aktuella VMA (efter kvittering)
 async function enableSilentMode() {

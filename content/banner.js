@@ -26,8 +26,8 @@
       wholeCountry: 'Hela landet',
       more: 'Visa mer',
       less: 'Visa mindre',
-      dismiss: 'Dölj',
-      dismissTitle: 'Dölj den här varningen på alla sidor. Ikonen i verktygsfältet fortsätter visa VMA.',
+      acknowledge: 'Kvittera VMA',
+      acknowledgeTitle: 'Kvittera för att stoppa blinkande notifiering men behålla varningsikonen. Balken tas bort på alla sidor.',
       count: (n) => `${n} aktiva VMA`,
       source: 'Källa: Sveriges Radio VMA'
     },
@@ -38,8 +38,8 @@
       wholeCountry: 'Whole country',
       more: 'Show more',
       less: 'Show less',
-      dismiss: 'Dismiss',
-      dismissTitle: 'Hide this alert on all pages. The toolbar icon will keep showing the VMA.',
+      acknowledge: 'Acknowledge Alert',
+      acknowledgeTitle: 'Acknowledge to stop the blinking notification but keep the warning icon. The bar is removed on all pages.',
       count: (n) => `${n} active alerts`,
       source: 'Source: Sveriges Radio VMA'
     }
@@ -266,19 +266,19 @@
       refresh();
     });
 
-    const dismissBtn = document.createElement('button');
-    dismissBtn.type = 'button';
-    dismissBtn.textContent = t.dismiss;
-    dismissBtn.title = t.dismissTitle;
-    dismissBtn.setAttribute('aria-label', t.dismiss + '. ' + t.dismissTitle);
-    dismissBtn.addEventListener('click', () => {
+    const acknowledgeBtn = document.createElement('button');
+    acknowledgeBtn.type = 'button';
+    acknowledgeBtn.textContent = t.acknowledge;
+    acknowledgeBtn.title = t.acknowledgeTitle;
+    acknowledgeBtn.setAttribute('aria-label', t.acknowledge + '. ' + t.acknowledgeTitle);
+    acknowledgeBtn.addEventListener('click', () => {
       const identifiers = alerts.map(a => a.identifier).filter(Boolean);
-      safeSendMessage({ action: 'dismissBanner', identifiers });
-      removeBanner(); // Hide immediately; storage change propagates to other tabs
+      safeSendMessage({ action: 'acknowledgeAlerts', identifiers });
+      removeBanner(); // Hide immediately; the silent-mode change propagates to other tabs
     });
 
     actions.appendChild(moreBtn);
-    actions.appendChild(dismissBtn);
+    actions.appendChild(acknowledgeBtn);
 
     row.appendChild(body);
     row.appendChild(actions);
