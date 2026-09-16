@@ -124,8 +124,11 @@ header button:hover {
   color: #666;
 }
 
+/* !important so it also beats more specific display rules such as
+   .footer-buttons button { display: flex } (the footer "Kvittera VMA"
+   button was otherwise visible even with no active alerts). */
 .hidden {
-  display: none;
+  display: none !important;
 }
 
 /* Alert items */
@@ -139,7 +142,10 @@ header button:hover {
 
 .alert-header {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: space-between;
+  gap: 4px 8px;
   margin-bottom: 8px;
   font-size: 12px;
 }
@@ -171,6 +177,7 @@ header button:hover {
 
 .alert-time {
   color: #666;
+  white-space: nowrap;
 }
 
 .alert-title {
@@ -316,8 +323,7 @@ footer {
 /* History specific styles */
 .alert-expired {
   font-size: 12px;
-  display: block;
-  margin-top: 5px;
+  flex-basis: 100%; /* own row under type and time */
   color: #888;
   font-style: italic;
 }

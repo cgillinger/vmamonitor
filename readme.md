@@ -1,6 +1,6 @@
 # VMA Notifieringar - Sveriges krisberedskap
 
-VMA Notifieringar är ett tillägg för Microsoft Edge som övervakar Viktigt Meddelande till Allmänheten (VMA) och visar aktuella varningar direkt i din webbläsare.
+VMA Notifieringar är ett tillägg för Microsoft Edge och Google Chrome som övervakar Viktigt Meddelande till Allmänheten (VMA) och visar aktuella varningar direkt i din webbläsare.
 
 > Det här är ett personligt hobbyprojekt som jag byggt för eget bruk och lagt upp ifall det är till nytta för någon annan. Jag jobbar på det på fritiden, så issues och PR:ar är välkomna men svar kan dröja. Använd på egen risk.
 
@@ -73,21 +73,22 @@ VMA (Viktigt Meddelande till Allmänheten) är ett varningssystem som används i
 
 ## Installation
 
-### Från Microsoft Edge Add-ons Store
-1. Besök [VMA Notifieringar på Microsoft Edge Add-ons Store](#) (länk kommer efter publicering)
-2. Klicka på "Hämta"
-3. Följ anvisningarna för att installera tillägget
+### Från webbläsarens butik
+- **Microsoft Edge**: [VMA Notifieringar på Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/vma-notifieringar-sveri/mndajlihjcfehjpfnfiempbmpaacgili)
+- **Google Chrome**: [VMA Notifieringar på Chrome Web Store](https://chromewebstore.google.com/detail/vma-notifieringar-sverige/okomfojjhabagokibnjoeoacdklmcpme)
+
+Klicka på "Hämta" respektive "Lägg till i Chrome" och följ anvisningarna.
 
 ### Manuell installation (utvecklingsläge)
-1. Ladda ner och packa upp zip-filen med källkoden
-2. Öppna Edge och gå till `edge://extensions/`
-3. Aktivera "Utvecklarläge" i övre högra hörnet
+1. Ladda ner och packa upp zip-filen med källkoden, eller klona repot
+2. Öppna `edge://extensions/` i Edge eller `chrome://extensions/` i Chrome
+3. Aktivera "Utvecklarläge"
 4. Klicka på "Läs in uppackad"
-5. Välj mappen där du packade upp källkoden
+5. Välj mappen med källkoden (den som innehåller `manifest.json`)
 
 ## Användning
 
-Efter installation dyker en VMA-ikon upp i Edge:s verktygsfält. Som standard är ikonen grön, vilket indikerar att det inte finns några aktiva VMA.
+Efter installation dyker en VMA-ikon upp i webbläsarens verktygsfält. Som standard är ikonen grön, vilket indikerar att det inte finns några aktiva VMA.
 
 ### Grundläggande funktioner:
 - **Kontrollera status**: Klicka på ikonen för att se aktuell status och eventuella aktiva VMA
@@ -108,7 +109,7 @@ Efter installation dyker en VMA-ikon upp i Edge:s verktygsfält. Som standard ä
 3. Vid aktivt VMA visas nu en balk överst på alla vanliga webbsidor (http/https). Du kan fälla ut hela texten eller kvittera VMA:t direkt från balken
 4. Kryssa ur rutan för att stänga av. Behörigheten tas då bort igen
 
-Observera: webbläsaren frågar bara första gången per profil. När du en gång godkänt behörigheten minns Edge samtycket, så om du stänger av och på funktionen igen beviljas den tyst utan ny fråga.
+Observera: webbläsaren frågar bara första gången per profil. När du en gång godkänt behörigheten minns webbläsaren samtycket, så om du stänger av och på funktionen igen beviljas den tyst utan ny fråga.
 
 Begränsningar: balken kan inte visas på webbläsarens egna sidor (ny flik, inställningar, tilläggsbutiken), i PDF-visaren eller i helskärmsläge. Notifieringar och ikonen i verktygsfältet fungerar oavsett.
 
@@ -167,10 +168,10 @@ Begränsningar: balken kan inte visas på webbläsarens egna sidor (ny flik, ins
 - Test-VMA visas aldrig i historiken
 - Användaren kan rensa historiken manuellt genom att avinstallera och återinstallera tillägget
 
-### Edge-optimeringar
-- Anpassade notifikationer för Microsoft Edge
-- Kompatibilitetsfixar specifika för Edge-webbläsaren
-- Robust felhantering för popup-öppning
+### Webbläsarstöd
+- Microsoft Edge och Google Chrome (Manifest V3, Chromium-baserade)
+- Andra Chromium-baserade webbläsare fungerar sannolikt men testas inte
+- Robust felhantering för popup-öppning från notifieringar
 
 ### Minneshantering
 - Effektiv datastruktur för att minimera minnesanvändning

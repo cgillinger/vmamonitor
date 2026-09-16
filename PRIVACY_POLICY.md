@@ -1,7 +1,7 @@
 # Integritetspolicy för VMA Notifieringar - Sveriges krisberedskap
 
 ## Inledning
-Denna integritetspolicy beskriver hur VMA Notifieringar - Sveriges krisberedskap ("tillägget", "vi", "vår" eller "oss") samlar in, använder och delar information när du använder vårt webbläsartillägg för Microsoft Edge.
+Denna integritetspolicy beskriver hur VMA Notifieringar - Sveriges krisberedskap ("tillägget", "vi", "vår" eller "oss") samlar in, använder och delar information när du använder vårt webbläsartillägg för Microsoft Edge och Google Chrome.
 
 ## Information vi samlar in
 VMA Notifieringar samlar in följande begränsade information:
