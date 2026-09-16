@@ -11,6 +11,7 @@ VMA Notifieringar samlar in följande begränsade information:
 - **Kvitterade varningar**: När du kvitterar ett VMA sparas dess ID lokalt i webbläsarens lagring (chrome.storage.local) för att undvika upprepade notifieringar.
 - **VMA-historik**: Information om de tre senaste utgångna VMA-meddelandena sparas lokalt i din webbläsare för att visa i historikfliken.
 - **Tillfällig data**: När du hämtar VMA-information visas data från Sveriges Radios VMA API tillfälligt i tillägget.
+- **Inställning för varningsbalk**: Om du väljer att aktivera varningsbalken sparas det valet, samt vilka VMA du dolt i balken, lokalt i din webbläsare (chrome.storage.local).
 
 ## Hur vi använder informationen
 - Din valda region används **endast** för att visa relevanta VMA-meddelanden för ditt geografiska område.
@@ -18,6 +19,14 @@ VMA Notifieringar samlar in följande begränsade information:
 - Information om kvitterade varningar används endast för att undvika upprepade notifieringar för samma VMA.
 - VMA-historik används endast för att visa dig tidigare VMA-meddelanden i tilläggets historikflik.
 - Ingen information används för reklam eller delning med tredje part.
+
+## Varningsbalk på webbsidor (valfri funktion)
+Tillägget kan visa aktiva VMA som en balk överst på webbsidor du besöker. Funktionen är **avstängd som standard**.
+
+- Om du aktiverar den begär tillägget behörighet att läsa och ändra webbsidor (`http://*/*`, `https://*/*`). Behörigheten behövs tekniskt för att kunna lägga in balken på sidan.
+- Behörigheten används **enbart** för att lägga till balken. Tillägget läser inte, sparar inte och skickar inte något innehåll från webbsidorna.
+- Skriptet körs bara på vanliga webbsidor (http/https) och gör ingenting utöver att visa aktiva VMA som redan hämtats från Sveriges Radio.
+- När du stänger av funktionen tas behörigheten bort igen.
 
 ## API-anrop
 Tillägget gör följande API-anrop till Sveriges Radios VMA API:
@@ -44,6 +53,7 @@ Tillägget gör följande API-anrop till Sveriges Radios VMA API:
 Du kan när som helst:
 - Ändra din valda region i tilläggets inställningar
 - Ändra ditt föredragna språk i tilläggets inställningar
+- Slå på eller av varningsbalken i tilläggets inställningar (behörigheten tas bort när du stänger av)
 - Rensa historik och kvitterade varningar genom att avinstallera tillägget
 - Avinstallera tillägget, vilket raderar all sparad data
 
@@ -53,4 +63,4 @@ Om du har frågor om denna integritetspolicy, kontakta oss via franke1281@proton
 ## Uppdateringar av integritetspolicyn
 Vi kan uppdatera denna integritetspolicy då och då. Vi meddelar om betydande ändringar genom att uppdatera tilläggets version.
 
-Senast uppdaterad: 6 april 2025 (Version 1.1)
+Senast uppdaterad: 16 september 2026 (Version 1.3)

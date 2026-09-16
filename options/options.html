@@ -9,13 +9,13 @@
 <body>
   <div class="container">
     <header>
-      <h1>VMA Notifieringar - Inställningar</h1>
-      <div class="version-badge">v1.2</div>
+      <h1 data-i18n="settingsTitle">VMA Notifieringar - Inställningar</h1>
+      <div class="version-badge" id="version-badge"></div>
     </header>
     
     <form class="options-form" role="form" aria-label="VMA inställningar">
       <div class="option-group">
-        <label for="region-select">Region för övervakning:</label>
+        <label for="region-select" data-i18n="regionLabel">Region för övervakning:</label>
         <select id="region-select" name="region" aria-describedby="region-hint">
           <option value="00">Hela Sverige</option>
           <optgroup label="Län">
@@ -42,51 +42,57 @@
             <option value="25">Norrbottens län</option>
           </optgroup>
         </select>
-        <p id="region-hint" class="hint">Välj region för att övervaka VMA-meddelanden. Välj "Hela Sverige" för att övervaka alla regioner.</p>
+        <p id="region-hint" class="hint" data-i18n="regionHint">Välj region för att övervaka VMA-meddelanden. Välj "Hela Sverige" för att övervaka alla regioner.</p>
       </div>
       
       <div class="option-group">
-        <label for="language-select">Föredraget språk:</label>
+        <label for="language-select" data-i18n="languageLabel">Föredraget språk:</label>
         <select id="language-select" name="language" aria-describedby="language-hint">
           <option value="sv">Svenska</option>
           <option value="en">English</option>
         </select>
-        <p id="language-hint" class="hint">Välj föredraget språk för VMA-meddelanden. Engelska översättningar visas när de finns tillgängliga.</p>
+        <p id="language-hint" class="hint" data-i18n="languageHint">Välj föredraget språk för VMA-meddelanden. Engelska översättningar visas när de finns tillgängliga.</p>
       </div>
       
       <div class="option-group">
-        <label for="check-interval">Uppdateringsintervall:</label>
-        <div class="info-text" id="interval-info">VMA-API:et kontrolleras var 5:e minut</div>
+        <label for="check-interval" data-i18n="intervalLabel">Uppdateringsintervall:</label>
+        <div class="info-text" id="interval-info" data-i18n="intervalInfo">VMA-API:et kontrolleras var 5:e minut</div>
       </div>
       
       <div class="actions">
-        <button id="save-btn" type="button" aria-describedby="save-help">Spara inställningar</button>
+        <button id="save-btn" type="button" aria-describedby="save-help" data-i18n="saveButton">Spara inställningar</button>
         <div id="status" class="hidden"></div>
       </div>
     </form>
+
+    <section class="options-form banner-section" aria-labelledby="banner-title">
+      <h2 id="banner-title" data-i18n="bannerSectionTitle">Varningsbalk på webbsidor</h2>
+      <div class="option-group">
+        <label class="checkbox-label" for="banner-toggle">
+          <input type="checkbox" id="banner-toggle" aria-describedby="banner-hint banner-instant">
+          <span data-i18n="bannerLabel">Visa aktiva VMA som en balk överst på webbsidor</span>
+        </label>
+        <p id="banner-hint" class="hint" data-i18n="bannerHint">Valfritt. Kräver att tillägget får läsa och ändra webbsidor du besöker, eftersom balken läggs in på själva sidan. Behörigheten används enbart för att visa balken. Balken kan inte visas på webbläsarens egna sidor (t.ex. ny flik eller inställningar) eller i helskärmsläge. Ikonen och notifieringarna fungerar som vanligt oavsett.</p>
+        <p id="banner-instant" class="instant-note" data-i18n="settingsSavedInstantly">Sparas direkt</p>
+        <div id="banner-status" class="hidden"></div>
+      </div>
+    </section>
     
     <section class="what-is-new" aria-labelledby="whats-new-title">
-      <h2 id="whats-new-title">Nyheter i version 1.2</h2>
-      <ul>
-        <li>Förbättrad tillgänglighet för skärmläsare och tangentbordsnavigering</li>
-        <li>ARIA-etiketter och live regions för bättre skärmläsarstöd</li>
-        <li>Tangentbordsgenvägar och fokusindikatorer</li>
-        <li>Stöd för "high contrast" och "reduced motion" preferenser</li>
-        <li>Förbättrade notifikationer till skärmläsare</li>
-        <li>Bättre strukturering av innehåll för hjälpmedel</li>
-      </ul>
+      <h2 id="whats-new-title">Nyheter i version</h2>
+      <ul id="whats-new-list"></ul>
     </section>
     
     <footer role="contentinfo">
-      <p>VMA Notifieringar v1.2 - Använder <a href="https://vmaapi.sr.se/" target="_blank" rel="noopener noreferrer">Sveriges Radio VMA API</a></p>
+      <p><span id="footer-text">VMA Notifieringar</span> - <span data-i18n="usesApi">Använder</span> <a href="https://vmaapi.sr.se/" target="_blank" rel="noopener noreferrer">Sveriges Radio VMA API</a></p>
     </footer>
   </div>
   
   <!-- Hidden help text for screen readers -->
   <div class="sr-only">
-    <div id="save-help">Sparar inställningarna och uppdaterar VMA-övervakningen enligt dina val</div>
+    <div id="save-help" data-i18n="saveSettingsDescription">Sparar inställningarna och uppdaterar VMA-övervakningen enligt dina val</div>
   </div>
   
-  <script src="options.js"></script>
+  <script type="module" src="options.js"></script>
 </body>
 </html>

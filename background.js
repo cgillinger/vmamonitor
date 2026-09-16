@@ -1,19 +1,37 @@
+import {
+  isTestAlert,
+  findBestMatchingInfo,
+  isSevereAlert,
+  isAcknowledged,
+  determineIconType,
+  compareVersions,
+  getExtensionVersion
+} from './shared/vma-utils.js';
+
 // Constants
 const API_URL = 'https://vmaapi.sr.se/api/v2/alerts';
-const TEST_API_URL = 'https://vmaapi.sr.se/testapi/v2/alerts';
+const TEST_API_URL = 'https://vmaapi.sr.se/testapi/v2/examples/data';
 const POLL_INTERVAL = 5; // minutes
 const BLINK_INTERVAL = 800; // milliseconds
-const STARTUP_DELAY = 15000; // milliseconds - wait 15 seconds before first check
+const STARTUP_DELAY = 15000; // milliseconds - wait before first check after browser start
 const DEBUG = false; // Set to false in production
 const OLD_ALERT_THRESHOLD = 3 * 24 * 60 * 60 * 1000; // 3 days in milliseconds
 const MAX_HISTORY_ITEMS = 3; // Antal VMA som ska sparas i historiken
-const VERSION = '1.2'; // Updated to version 1.2
+const VERSION = getExtensionVersion(); // Single source of truth: manifest.json
 
-// Track blinking state
+// Page banner (opt-in): dynamically registered content script
+const BANNER_SCRIPT_ID = 'vma-page-banner';
+const BANNER_ORIGINS = ['http://*/*', 'https://*/*'];
+const BANNER_SCRIPT_FILE = 'content/banner.js';
+
+// Track blinking state. NOTE: a MV3 service worker may be suspended at any
+// time, which kills this timer. The badge is therefore always set to a
+// deterministic static state first; blinking is a best-effort enhancement.
 let blinkingTimer = null;
-let browserReady = false;
 
-// Icon paths for different alert states
+// Icon paths for different alert states.
+// NOTE: lamp-orange-* files are not yet in the repo. setIconSafe() falls back
+// to the red icon until they are added.
 const ICONS = {
   default: {
     16: 'icons/lamp-green-16.png',
@@ -47,80 +65,92 @@ const ICONS = {
   }
 };
 
+const ICON_FALLBACK = { major: 'severe' };
+
+const BADGE_COLORS = {
+  test: '#0077ff',
+  minor: '#FFD700',
+  major: '#ff7700',
+  severe: '#ff0000'
+};
+
 // Logger utility for production-appropriate logging
 const logger = {
-  info: function(message) {
-    if (DEBUG) {
-      console.log('[VMA-INFO] ' + message);
-    }
+  info(message) {
+    if (DEBUG) console.log('[VMA-INFO] ' + message);
   },
-  warn: function(message) {
+  warn(message) {
     console.warn('[VMA-WARN] ' + message);
   },
-  error: function(message, error) {
+  error(message, error) {
     console.error('[VMA-ERROR] ' + message, error);
   },
-  important: function(message) {
+  important(message) {
     console.log('[VMA-IMPORTANT] ' + message);
   }
 };
 
-// Detect browser - mainly to help with debugging
-const isEdge = navigator.userAgent.includes("Edg/");
-logger.info('Running in ' + (isEdge ? 'Microsoft Edge' : 'Chrome/Other Chromium browser'));
+// ---------------------------------------------------------------------------
+// Lifecycle
+// ---------------------------------------------------------------------------
 
-// Initialize on install
-chrome.runtime.onInstalled.addListener((details) => {
+chrome.runtime.onInstalled.addListener(async (details) => {
   logger.important(`VMA Monitor installed/updated to v${VERSION}`);
-  
-  // Check if this is an update and perform migration if needed
+
   if (details.reason === 'update') {
     logger.important(`Updated from version ${details.previousVersion} to ${VERSION}`);
-    performMigration(details.previousVersion);
+    await performMigration(details.previousVersion);
   }
-  
-  // Set default options
-  chrome.storage.sync.get(['geoCode', 'testMode', 'preferredLanguage'], (result) => {
-    if (!result.geoCode) {
-      chrome.storage.sync.set({ geoCode: '00' }); // Default to all Sweden
-    }
-    if (result.testMode === undefined) {
-      chrome.storage.sync.set({ testMode: false });
-    }
-    if (result.preferredLanguage === undefined) {
-      // Detect browser language or default to Swedish
-      const browserLang = chrome.i18n.getUILanguage();
-      const preferredLanguage = browserLang.startsWith('en') ? 'en' : 'sv';
-      chrome.storage.sync.set({ preferredLanguage });
-      logger.important(`Setting default language to: ${preferredLanguage} based on browser UI ${browserLang}`);
-    }
-  });
 
-  // Initiera vmaHistory om den inte finns
-  chrome.storage.local.get(['vmaHistory'], (result) => {
-    if (!result.vmaHistory) {
-      chrome.storage.local.set({ vmaHistory: [] });
-    }
-  });
+  await setDefaultOptions();
+  await setIconSafe('default');
+  await ensureAlarms();
+  await syncBannerRegistration();
 
-  // Set default icon
-  chrome.action.setIcon({ path: ICONS.default });
-
-  // Create alarm for polling
-  chrome.alarms.create('pollVMA', { periodInMinutes: POLL_INTERVAL });
-  
-  // Create alarm for cleaning old acknowledged alerts (once per day)
-  chrome.alarms.create('cleanOldAlerts', { periodInMinutes: 1440 }); // 1440 minutes = 24 hours
+  // Do a first check shortly after install/update so the icon reflects reality.
+  setTimeout(safeCheckForAlerts, 2000);
 });
 
-// Perform migration when updating from old version
+chrome.runtime.onStartup.addListener(() => {
+  logger.important(`VMA Monitor v${VERSION} starting up`);
+  setTimeout(() => {
+    safeCheckForAlerts();
+    cleanOldAcknowledgedAlerts();
+    cleanHistoryFromTestAlerts();
+  }, STARTUP_DELAY);
+});
+
+// Runs every time the service worker wakes up (not only on install/startup).
+ensureAlarms();
+
+async function setDefaultOptions() {
+  const result = await chrome.storage.sync.get(['geoCode', 'testMode', 'preferredLanguage']);
+  const updates = {};
+  if (!result.geoCode) updates.geoCode = '00'; // Default to all Sweden
+  if (result.testMode === undefined) updates.testMode = false;
+  if (result.preferredLanguage === undefined) {
+    const browserLang = chrome.i18n.getUILanguage();
+    updates.preferredLanguage = browserLang.startsWith('en') ? 'en' : 'sv';
+    logger.important(`Setting default language to: ${updates.preferredLanguage} based on browser UI ${browserLang}`);
+  }
+  if (Object.keys(updates).length > 0) {
+    await chrome.storage.sync.set(updates);
+  }
+
+  const local = await chrome.storage.local.get(['vmaHistory', 'bannerEnabled']);
+  const localUpdates = {};
+  if (!local.vmaHistory) localUpdates.vmaHistory = [];
+  if (local.bannerEnabled === undefined) localUpdates.bannerEnabled = false;
+  if (Object.keys(localUpdates).length > 0) {
+    await chrome.storage.local.set(localUpdates);
+  }
+}
+
+// Perform migration when updating from an older version
 async function performMigration(previousVersion) {
   try {
-    // Migration for pre-1.1 (adding language support)
-    if (previousVersion && parseFloat(previousVersion) < 1.1) {
-      logger.important("Performing migration to v1.1 (adding language support)");
-      
-      // Add preferredLanguage setting if not already existing
+    if (compareVersions(previousVersion, '1.1') < 0) {
+      logger.important('Performing migration to v1.1 (adding language support)');
       const { preferredLanguage } = await chrome.storage.sync.get(['preferredLanguage']);
       if (preferredLanguage === undefined) {
         const browserLang = chrome.i18n.getUILanguage();
@@ -129,75 +159,54 @@ async function performMigration(previousVersion) {
         logger.important(`Migration: Added preferredLanguage setting: ${newPreferredLanguage}`);
       }
     }
+
+    if (compareVersions(previousVersion, '1.3') < 0) {
+      logger.important('Performing migration to v1.3 (page banner setting)');
+      // Banner is opt-in and off by default; nothing else to migrate.
+      await chrome.storage.local.set({ bannerEnabled: false, bannerDismissed: [] });
+    }
   } catch (error) {
-    logger.error("Error during migration", error);
+    logger.error('Error during migration', error);
   }
 }
 
-// Wait for the browser to be ready before doing initial checks
-chrome.runtime.onStartup.addListener(() => {
-  logger.important(`VMA Monitor v${VERSION} starting up`);
-  // Set a delayed initial check to ensure browser windows are available
-  setTimeout(() => {
-    browserReady = true;
-    safeCheckForAlerts();
-    
-    // Also clean old alerts on startup
-    cleanOldAcknowledgedAlerts();
-    
-    // Rensa historiken från test-VMA
-    cleanHistoryFromTestAlerts();
-  }, STARTUP_DELAY);
-});
+// Make sure the periodic alarms exist (alarms survive restarts, but not
+// necessarily a reinstall or a cleared profile).
+async function ensureAlarms() {
+  try {
+    const poll = await chrome.alarms.get('pollVMA');
+    if (!poll) {
+      chrome.alarms.create('pollVMA', { periodInMinutes: POLL_INTERVAL });
+    }
+    const clean = await chrome.alarms.get('cleanOldAlerts');
+    if (!clean) {
+      chrome.alarms.create('cleanOldAlerts', { periodInMinutes: 1440 }); // 24 hours
+    }
+  } catch (error) {
+    logger.error('Error ensuring alarms', error);
+  }
+}
 
-// Handle alarm for polling
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === 'pollVMA') {
     safeCheckForAlerts();
   } else if (alarm.name === 'cleanOldAlerts') {
     cleanOldAcknowledgedAlerts();
-    cleanHistoryFromTestAlerts(); // Rensa historiken från test-VMA regelbundet
+    cleanHistoryFromTestAlerts();
   }
 });
+
+// ---------------------------------------------------------------------------
+// Housekeeping
+// ---------------------------------------------------------------------------
 
 // Rensa historiken från test-VMA
 async function cleanHistoryFromTestAlerts() {
   try {
     const { vmaHistory = [] } = await chrome.storage.local.get(['vmaHistory']);
-    
-    if (vmaHistory.length === 0) {
-      return;
-    }
-    
-    // Filtrera bort alla testlarm från historiken
-    const filteredHistory = vmaHistory.filter(alert => {
-      // Kontrollera explicit om det är ett testlarm
-      if (alert.status === 'Test') {
-        return false;
-      }
-      
-      // Kontrollera om identifier innehåller 'TEST' eller 'test'
-      if (alert.identifier && (
-          alert.identifier.includes('TEST') || 
-          alert.identifier.includes('test')
-      )) {
-        return false;
-      }
-      
-      // Kontrollera om beskrivningen innehåller testinformation
-      if (alert.info && alert.info.length > 0) {
-        const description = alert.info[0].description || '';
-        if (description.includes('TEST') || 
-            description.includes('test') || 
-            description.includes('Test')) {
-          return false;
-        }
-      }
-      
-      return true;
-    });
-    
-    // Om några test-VMA togs bort, uppdatera historiken
+    if (vmaHistory.length === 0) return;
+
+    const filteredHistory = vmaHistory.filter(alert => !isTestAlert(alert));
     if (filteredHistory.length < vmaHistory.length) {
       logger.important(`Cleaned ${vmaHistory.length - filteredHistory.length} test alerts from history`);
       await chrome.storage.local.set({ vmaHistory: filteredHistory });
@@ -211,129 +220,117 @@ async function cleanHistoryFromTestAlerts() {
 async function cleanOldAcknowledgedAlerts() {
   try {
     const { acknowledgedAlerts = [] } = await chrome.storage.local.get(['acknowledgedAlerts']);
-    
-    if (acknowledgedAlerts.length === 0) {
-      logger.info('No acknowledged alerts to clean up');
-      return;
-    }
-    
-    logger.info(`Checking for old acknowledged alerts to clean up. Current count: ${acknowledgedAlerts.length}`);
-    
+    if (acknowledgedAlerts.length === 0) return;
+
     const now = Date.now();
-    let alertsWithTimestamp = [];
-    
-    // We store alerts with timestamps if they don't have one already
-    acknowledgedAlerts.forEach(alertId => {
-      // Check if the alert ID already contains a timestamp
-      if (alertId.includes('::')) {
-        alertsWithTimestamp.push(alertId);
-      } else {
-        // If not, add current timestamp
-        alertsWithTimestamp.push(`${alertId}::${now}`);
-      }
+
+    // Entries are stored as "<identifier>::<timestamp>". Add a timestamp to legacy entries.
+    const alertsWithTimestamp = acknowledgedAlerts.map(entry =>
+      entry.includes('::') ? entry : `${entry}::${now}`
+    );
+
+    const newAcknowledgedAlerts = alertsWithTimestamp.filter(entry => {
+      const [, timestampStr] = entry.split('::');
+      const timestamp = parseInt(timestampStr, 10);
+      if (Number.isNaN(timestamp)) return true;
+      return now - timestamp < OLD_ALERT_THRESHOLD;
     });
-    
-    // Filter out old alerts
-    const newAcknowledgedAlerts = alertsWithTimestamp.filter(alertWithTimestamp => {
-      const [, timestampStr] = alertWithTimestamp.split('::');
-      if (!timestampStr) return true; // Keep alerts without timestamps
-      
-      const timestamp = parseInt(timestampStr);
-      const age = now - timestamp;
-      return age < OLD_ALERT_THRESHOLD;
-    });
-    
-    // If we removed any alerts, update storage
-    if (newAcknowledgedAlerts.length < alertsWithTimestamp.length) {
+
+    if (newAcknowledgedAlerts.length !== acknowledgedAlerts.length ||
+        alertsWithTimestamp.some((entry, i) => entry !== acknowledgedAlerts[i])) {
       logger.important(`Cleaned up ${alertsWithTimestamp.length - newAcknowledgedAlerts.length} old acknowledged alerts`);
       await chrome.storage.local.set({ acknowledgedAlerts: newAcknowledgedAlerts });
-    } else {
-      logger.info('No old acknowledged alerts to clean up');
     }
   } catch (error) {
     logger.error('Error cleaning old acknowledged alerts:', error);
   }
 }
 
-// Funktion för att starta blinkning med utropstecken och VMA
-function startTwoBadgeBlink(iconType, isSilent = false) {
-  const badgeColor = {
-    'test': '#0077ff',
-    'minor': '#FFD700',
-    'major': '#ff7700',
-    'severe': '#ff0000'
-  };
-  
-  chrome.action.setBadgeBackgroundColor({ color: badgeColor[iconType] });
-  
-  // Avbryt eventuell befintlig blinkning
-  if (blinkingTimer) {
-    clearInterval(blinkingTimer);
-  }
-  
-  // Om tillägget är i tyst läge (kvitterat), visa ingen badge-text
-  if (isSilent) {
-    chrome.action.setBadgeText({ text: '' });
-    return;
-  }
-  
-  // För allvarliga VMA, rotera mellan "!" och "VMA"
-  if (iconType === 'severe') {
-    let blinkState = true;
-    
-    blinkingTimer = setInterval(() => {
-      chrome.action.setBadgeText({ text: blinkState ? '!' : 'VMA' });
-      blinkState = !blinkState;
-    }, BLINK_INTERVAL);
-  } 
-  // För andra allvarlighetsnivåer
-  else if (iconType !== 'default') {
-    let blinkState = true;
-    
-    blinkingTimer = setInterval(() => {
-      chrome.action.setBadgeText({ text: blinkState ? '!' : '' });
-      blinkState = !blinkState;
-    }, BLINK_INTERVAL);
-  } else {
-    chrome.action.setBadgeText({ text: '' });
+// ---------------------------------------------------------------------------
+// Icon and badge
+// ---------------------------------------------------------------------------
+
+// Set the toolbar icon, falling back if the image files are missing.
+async function setIconSafe(iconType) {
+  const path = ICONS[iconType] || ICONS.default;
+  try {
+    await chrome.action.setIcon({ path });
+  } catch (error) {
+    const fallback = ICON_FALLBACK[iconType];
+    if (fallback) {
+      logger.warn(`Icon "${iconType}" could not be set, falling back to "${fallback}"`);
+      try {
+        await chrome.action.setIcon({ path: ICONS[fallback] });
+        return;
+      } catch (fallbackError) {
+        logger.error('Fallback icon failed too', fallbackError);
+      }
+    } else {
+      logger.error(`Failed to set icon "${iconType}"`, error);
+    }
   }
 }
 
-// Create a single notification for a VMA
-async function createVMANotification(alert) {
-  if (!alert || !alert.info || alert.info.length === 0) {
+function stopBlinking() {
+  if (blinkingTimer) {
+    clearInterval(blinkingTimer);
+    blinkingTimer = null;
+  }
+}
+
+// Update the badge for the given icon type. The badge always ends up in a
+// stable state (static text) even if the worker is suspended mid-blink.
+function updateBadge(iconType, isSilent = false) {
+  stopBlinking();
+
+  if (iconType === 'default' || isSilent) {
+    chrome.action.setBadgeText({ text: '' });
     return;
   }
-  
+
+  chrome.action.setBadgeBackgroundColor({ color: BADGE_COLORS[iconType] || '#ff0000' });
+  chrome.action.setBadgeText({ text: '!' });
+
+  // Best-effort blinking while the worker is alive.
+  const frames = iconType === 'severe' ? ['!', 'VMA'] : ['!', ''];
+  let index = 0;
+  blinkingTimer = setInterval(() => {
+    index = (index + 1) % frames.length;
+    chrome.action.setBadgeText({ text: frames[index] });
+  }, BLINK_INTERVAL);
+}
+
+// ---------------------------------------------------------------------------
+// Notifications
+// ---------------------------------------------------------------------------
+
+async function createVMANotification(alert, iconType) {
+  if (!alert || !alert.info || alert.info.length === 0) return;
+
   try {
-    // Get preferred language
     const { preferredLanguage = 'sv' } = await chrome.storage.sync.get(['preferredLanguage']);
-    
-    // Find best matching info based on language preference
-    let info = findBestMatchingInfo(alert.info, preferredLanguage);
-    
+    const { info } = findBestMatchingInfo(alert.info, preferredLanguage);
+
     const title = info.event || chrome.i18n.getMessage('notificationTitle');
     let message = info.description || chrome.i18n.getMessage('noDetailedInfo');
-    
-    // Trim message if too long
     if (message.length > 150) {
       message = message.substring(0, 147) + '...';
     }
-    
-    // Add area information if available
+
     let contextMessage = '';
     if (info.area && info.area.length > 0) {
       const areas = info.area.map(a => a.areaDesc).join(', ');
       contextMessage = `${chrome.i18n.getMessage('affectedAreas')}: ${areas}`;
     }
-    
-    // Create single notification
+
+    const iconUrl = (ICONS[iconType] && iconType !== 'major') ? ICONS[iconType][128] : ICONS.severe[128];
+
     chrome.notifications.create('vma-alert', {
       type: 'basic',
-      iconUrl: 'icons/lamp-red-128.png',
-      title: title,
-      message: message,
-      contextMessage: contextMessage,
+      iconUrl,
+      title,
+      message,
+      contextMessage,
       priority: 2,
       requireInteraction: true,
       silent: false
@@ -343,270 +340,160 @@ async function createVMANotification(alert) {
   }
 }
 
-// Find the best matching info object based on language preference
-function findBestMatchingInfo(infoArray, preferredLanguage) {
-  if (!infoArray || infoArray.length === 0) {
-    return {}; // Return empty object if no info available
-  }
-  
-  // For Swedish preference
-  if (preferredLanguage === 'sv') {
-    // First try to find Swedish info
-    const svInfo = infoArray.find(info => info.language === 'sv-SE');
-    if (svInfo) return svInfo;
-    
-    // If no Swedish found, use English if available
-    const enInfo = infoArray.find(info => info.language === 'en-US');
-    if (enInfo) return enInfo;
-  } 
-  // For English preference
-  else if (preferredLanguage === 'en') {
-    // First try to find English info
-    const enInfo = infoArray.find(info => info.language === 'en-US');
-    if (enInfo) return enInfo;
-    
-    // If no English found, fall back to Swedish
-    const svInfo = infoArray.find(info => info.language === 'sv-SE');
-    if (svInfo) return svInfo;
-  }
-  
-  // If no match by language or fallback, just return the first info
-  return infoArray[0];
-}
-
-// Check if we should create notification for severe alerts
-async function checkIfShouldCreateNotification(alerts) {
-  if (!browserReady) {
-    logger.info('Browser not ready, skipping notification check');
-    return;
-  }
-  
+// Show a notification for the first severe alert that has not been acknowledged.
+async function maybeNotify(alerts, iconType) {
   try {
-    // Get the list of acknowledged alerts and silent mode
-    const { acknowledgedAlerts = [], silentMode = false } = await chrome.storage.local.get(['acknowledgedAlerts', 'silentMode']);
-    
-    // If already in silent mode, don't create new notifications
+    const { acknowledgedAlerts = [], silentMode = false } =
+      await chrome.storage.local.get(['acknowledgedAlerts', 'silentMode']);
+
     if (silentMode) {
       logger.info('Silent mode active, skipping notification');
       return;
     }
-    
-    // Filter severe alerts
-    const severeAlerts = alerts.filter(alert => {
-      if (!alert.info || alert.info.length === 0) return false;
-      
-      return alert.info.some(info => 
-        info.severity === 'Extreme' || info.severity === 'Severe'
-      );
-    });
-    
-    // Check if any severe alert has not been acknowledged
-    const unacknowledgedSevereAlerts = severeAlerts.filter(alert => {
-      // Extract just the identifier part if the stored value has a timestamp
-      const acknowledgedIds = acknowledgedAlerts.map(item => {
-        return item.includes('::') ? item.split('::')[0] : item;
-      });
-      return !acknowledgedIds.includes(alert.identifier);
-    });
-    
-    if (unacknowledgedSevereAlerts.length === 0) {
-      return; // No severe unacknowledged alerts
+
+    const unacknowledgedSevere = alerts.filter(alert =>
+      isSevereAlert(alert) && !isAcknowledged(alert, acknowledgedAlerts)
+    );
+
+    if (unacknowledgedSevere.length > 0) {
+      await createVMANotification(unacknowledgedSevere[0], iconType);
     }
-    
-    // Create a single notification for the first unacknowledged severe alert
-    createVMANotification(unacknowledgedSevereAlerts[0]);
-    
   } catch (error) {
     logger.error('Error checking for notifications:', error);
   }
 }
 
-// Safer check for alerts that handles startup conditions
-function safeCheckForAlerts() {
-  logger.info('Performing safe check for alerts');
-  try {
-    checkForAlerts().catch(err => {
-      logger.error('Error in checkForAlerts:', err);
+chrome.notifications.onClicked.addListener((notificationId) => {
+  if (notificationId !== 'vma-alert') return;
+  chrome.notifications.clear(notificationId);
+
+  const showGuide = () => {
+    chrome.notifications.create('vma-popup-guide', {
+      type: 'basic',
+      iconUrl: ICONS.severe[128],
+      title: chrome.i18n.getMessage('clickVmaIcon'),
+      message: chrome.i18n.getMessage('clickIconDetails'),
+      priority: 2
     });
-  } catch (error) {
-    logger.error('Error initiating alert check:', error);
+  };
+
+  // openPopup() requires a user gesture in most browsers and may reject.
+  if (chrome.action.openPopup) {
+    Promise.resolve()
+      .then(() => chrome.action.openPopup())
+      .catch(error => {
+        logger.info('Could not open popup from notification: ' + error);
+        showGuide();
+      });
+  } else {
+    showGuide();
   }
+});
+
+// ---------------------------------------------------------------------------
+// Fetching and processing alerts
+// ---------------------------------------------------------------------------
+
+function safeCheckForAlerts() {
+  checkForAlerts().catch(err => {
+    logger.error('Error in checkForAlerts:', err);
+  });
 }
 
-// Check for VMA alerts
 async function checkForAlerts() {
+  const { geoCode, testMode } = await chrome.storage.sync.get(['geoCode', 'testMode']);
+  logger.info(`Checking for alerts - Test mode: ${testMode}, Region: ${geoCode}`);
+
   try {
-    const { geoCode, testMode } = await chrome.storage.sync.get(['geoCode', 'testMode']);
-    logger.info(`Checking for alerts - Test mode: ${testMode}, Region: ${geoCode}`);
-    
     const url = buildApiUrl(geoCode, testMode);
-    logger.info(`Using API URL: ${url}`);
-    
-    const response = await fetch(url);
-    
+    const response = await fetch(url, { cache: 'no-store' });
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
 
     const data = await response.json();
-    logger.info(`Received data with ${data.alerts?.length || 0} alerts`);
-    
-    if (testMode && (!data.alerts || data.alerts.length === 0)) {
-      // In test mode, create a fake test alert if none were found
-      const testAlert = createTestAlert();
-      processAlerts([testAlert], testMode);
+    const alerts = Array.isArray(data.alerts) ? data.alerts : [];
+    logger.info(`Received data with ${alerts.length} alerts`);
+
+    if (testMode && alerts.length === 0) {
+      await processAlerts([createTestAlert()], testMode);
     } else {
-      processAlerts(data.alerts || [], testMode);
+      await processAlerts(alerts, testMode);
     }
-    
-    // När vi är i testläge och får nya alerts, rensa historiken från test-VMA
+
     if (testMode) {
       cleanHistoryFromTestAlerts();
     }
   } catch (error) {
     logger.error('Error checking VMA alerts:', error);
-    
-    // In test mode, create a fake test alert on error
-    const { testMode } = await chrome.storage.sync.get(['testMode']);
+    // On network errors we keep the previously stored alerts (do not clear the
+    // icon just because the API was unreachable). In test mode, show a fake alert.
     if (testMode) {
-      const testAlert = createTestAlert();
-      processAlerts([testAlert], testMode);
+      await processAlerts([createTestAlert()], testMode);
     }
   }
 }
 
-// Create a test alert for demo purposes
 function createTestAlert() {
   return {
-    identifier: "TEST-VMA-" + Date.now(),
-    sender: "VMA Monitor Extension",
+    identifier: 'TEST-VMA-' + Date.now(),
+    sender: 'VMA Monitor Extension',
     sent: new Date().toISOString(),
-    status: "Test",
-    msgType: "Alert",
-    scope: "Public",
+    status: 'Test',
+    msgType: 'Alert',
+    scope: 'Public',
     info: [
-      // Swedish info
       {
-        language: "sv-SE",
-        category: "Safety",
-        event: "Test VMA",
-        urgency: "Expected",
-        severity: "Minor",
-        certainty: "Likely",
-        senderName: "VMA Monitor Extension",
-        description: "Detta är ett test av VMA Monitor. Vid ett riktigt VMA skulle viktig information visas här.",
-        area: [{
-          areaDesc: "Test Region"
-        }]
+        language: 'sv-SE',
+        category: 'Safety',
+        event: 'Test VMA',
+        urgency: 'Expected',
+        severity: 'Minor',
+        certainty: 'Likely',
+        senderName: 'VMA Monitor Extension',
+        description: 'Detta är ett test av VMA Monitor. Vid ett riktigt VMA skulle viktig information visas här.',
+        area: [{ areaDesc: 'Test Region' }]
       },
-      // English info (added in v1.1)
       {
-        language: "en-US",
-        category: "Safety",
-        event: "Test Emergency Alert",
-        urgency: "Expected",
-        severity: "Minor",
-        certainty: "Likely",
-        senderName: "VMA Monitor Extension",
-        description: "This is a test of the VMA Monitor. In case of a real emergency, important information would be displayed here.",
-        area: [{
-          areaDesc: "Test Region"
-        }]
+        language: 'en-US',
+        category: 'Safety',
+        event: 'Test Emergency Alert',
+        urgency: 'Expected',
+        severity: 'Minor',
+        certainty: 'Likely',
+        senderName: 'VMA Monitor Extension',
+        description: 'This is a test of the VMA Monitor. In case of a real emergency, important information would be displayed here.',
+        area: [{ areaDesc: 'Test Region' }]
       }
     ]
   };
 }
 
-// Build API URL based on settings
 function buildApiUrl(geoCode, testMode) {
-  // Always use test API or examples endpoint in test mode
-  const baseUrl = testMode ? TEST_API_URL : API_URL;
-  
-  // When in test mode, try to use the examples endpoint
   if (testMode) {
-    return `https://vmaapi.sr.se/testapi/v2/examples/data`;
+    return TEST_API_URL;
   }
-  
   if (geoCode && geoCode !== '00') {
-    return `${baseUrl}/${geoCode}`;
+    return `${API_URL}/${encodeURIComponent(geoCode)}`;
   }
-  
-  return baseUrl;
-}
-
-// Avgör om ett VMA är ett test-VMA baserat på flera kriterier
-function isTestAlert(alert) {
-  // Kontrollera status
-  if (alert.status === 'Test') {
-    return true;
-  }
-  
-  // Kontrollera identifier
-  if (alert.identifier && (
-      alert.identifier.includes('TEST') || 
-      alert.identifier.includes('test')
-  )) {
-    return true;
-  }
-  
-  // Kontrollera beskrivning
-  if (alert.info && alert.info.length > 0) {
-    // Check all info objects
-    return alert.info.some(info => {
-      const description = info.description || '';
-      const event = info.event || '';
-      
-      return description.includes('TEST') || 
-             description.includes('test') || 
-             description.includes('Test') ||
-             event.includes('TEST') || 
-             event.includes('test') || 
-             event.includes('Test');
-    });
-  }
-  
-  return false;
+  return API_URL;
 }
 
 // Uppdatera VMA-historik
 async function updateVmaHistory(expiredAlerts) {
   try {
-    // Om inga utgångna larm, gör ingenting
-    if (expiredAlerts.length === 0) {
-      return;
-    }
-    
+    const nonTestAlerts = expiredAlerts.filter(alert => !isTestAlert(alert));
+    if (nonTestAlerts.length === 0) return;
+
     const { vmaHistory = [] } = await chrome.storage.local.get(['vmaHistory']);
-    
-    // Filtrera bort alla testlarm
-    const nonTestAlerts = expiredAlerts.filter(alert => {
-      if (isTestAlert(alert)) {
-        logger.info(`Filtering out test alert from history: ${alert.identifier}`);
-        return false;
-      }
-      return true;
-    });
-    
-    // Om inga riktiga larm finns, gör ingenting
-    if (nonTestAlerts.length === 0) {
-      logger.info('No non-test alerts to add to history');
-      return;
-    }
-    
-    // Lägg till utgångsdatum/tid till VMA
-    const timeStampedAlerts = nonTestAlerts.map(alert => ({
-      ...alert,
-      expiredAt: new Date().toISOString()
-    }));
-    
-    // Filtrera även bort eventuella test-VMA från befintlig historik
+    const expiredAt = new Date().toISOString();
+    const timeStampedAlerts = nonTestAlerts.map(alert => ({ ...alert, expiredAt }));
     const filteredHistory = vmaHistory.filter(alert => !isTestAlert(alert));
-    
-    // Kombinera med befintlig historik och begränsa till MAX_HISTORY_ITEMS poster
+
     const newHistory = [...timeStampedAlerts, ...filteredHistory]
       .sort((a, b) => new Date(b.expiredAt || b.sent) - new Date(a.expiredAt || a.sent))
       .slice(0, MAX_HISTORY_ITEMS);
-    
+
     await chrome.storage.local.set({ vmaHistory: newHistory });
     logger.important(`VMA history updated, now contains ${newHistory.length} items`);
   } catch (error) {
@@ -614,209 +501,252 @@ async function updateVmaHistory(expiredAlerts) {
   }
 }
 
-// Process alerts from API response
+// Process alerts from the API response
 async function processAlerts(alerts, isTestMode) {
-  // Hämta tidigare aktiva VMA
   const { activeAlerts: previousActiveAlerts = [] } = await chrome.storage.local.get(['activeAlerts']);
 
-  // Filter valid alerts (Actual status and Alert msgType)
-  const activeAlerts = alerts.filter(alert => 
-    (alert.status === 'Actual' || alert.status === 'Test') && 
-    alert.msgType === 'Alert'
+  // Only Actual/Test alerts of type Alert are shown
+  const activeAlerts = alerts.filter(alert =>
+    (alert.status === 'Actual' || alert.status === 'Test') && alert.msgType === 'Alert'
   );
 
-  // Om vi är i testläge, lagrings inga tidigare alerts för att jämföra 
-  // (detta förhindrar att test-VMA läggs till i historiken när testläge avslutas)
+  // Move alerts that are no longer active into the history (real alerts only)
   if (!isTestMode) {
-    // Identifiera VMA som inte längre är aktiva, men bara icke-test VMA
-    const expiredAlerts = previousActiveAlerts.filter(prevAlert => 
-      !activeAlerts.some(newAlert => newAlert.identifier === prevAlert.identifier) && 
+    const expiredAlerts = previousActiveAlerts.filter(prevAlert =>
+      !activeAlerts.some(newAlert => newAlert.identifier === prevAlert.identifier) &&
       !isTestAlert(prevAlert)
     );
-    
-    // Om vi har utgångna VMA, lägg till dem i historiken
     if (expiredAlerts.length > 0) {
-      logger.info(`Found ${expiredAlerts.length} expired VMA alerts to check for history`);
-      updateVmaHistory(expiredAlerts);
+      await updateVmaHistory(expiredAlerts);
     }
   }
 
   if (activeAlerts.length === 0) {
-    // No active alerts, set default icon
-    chrome.action.setIcon({ path: ICONS.default });
-    chrome.action.setBadgeText({ text: '' });
-    chrome.storage.local.set({ activeAlerts: [], silentMode: false }); // Reset silent mode
-    
-    // Stop blinking if it was active
-    if (blinkingTimer) {
-      clearInterval(blinkingTimer);
-      blinkingTimer = null;
-    }
-    
+    await chrome.storage.local.set({ activeAlerts: [], silentMode: false, bannerDismissed: [] });
+    await setIconSafe('default');
+    updateBadge('default');
     return;
   }
 
-  // Store alerts for popup
-  chrome.storage.local.set({ activeAlerts });
+  // Drop banner dismissals for alerts that are no longer active
+  const { bannerDismissed = [], silentMode = false } =
+    await chrome.storage.local.get(['bannerDismissed', 'silentMode']);
+  const activeIds = new Set(activeAlerts.map(a => a.identifier));
+  const stillDismissed = bannerDismissed.filter(id => activeIds.has(id));
 
-  // Determine highest severity for icon
+  await chrome.storage.local.set({ activeAlerts, bannerDismissed: stillDismissed });
+
   const iconType = determineIconType(activeAlerts);
-  chrome.action.setIcon({ path: ICONS[iconType] });
-  
-  // Kontrollera om VMA är i tyst läge (kvitterat)
-  const { silentMode = false } = await chrome.storage.local.get(['silentMode']);
-  
-  // Start badge blinking with exclamation and VMA, or silent if acknowledged
-  startTwoBadgeBlink(iconType, silentMode);
+  await setIconSafe(iconType);
+  updateBadge(iconType, silentMode);
+
+  if (iconType === 'severe') {
+    await maybeNotify(activeAlerts, iconType);
+  }
 }
 
-// Determine highest severity for icon
-function determineIconType(alerts) {
-  // Check if there are any test alerts
-  const isTest = alerts.some(alert => alert.status === 'Test');
-  if (isTest) {
-    return 'test';
-  }
+// ---------------------------------------------------------------------------
+// Page banner (opt-in content script)
+// ---------------------------------------------------------------------------
 
-  // Look at all alerts' severity to determine the highest
-  let highestSeverity = 'default';
-  let hasSevere = false;
-  
-  for (const alert of alerts) {
-    if (!alert.info || alert.info.length === 0) continue;
-    
-    for (const info of alert.info) {
-      if (info.severity === 'Extreme') {
-        hasSevere = true;
-        return 'severe'; // Highest priority, return immediately
-      } else if (info.severity === 'Severe' && highestSeverity !== 'severe') {
-        highestSeverity = 'severe';
-        hasSevere = true;
-      } else if (info.severity === 'Moderate' && highestSeverity !== 'severe') {
-        highestSeverity = 'major';
-      } else if (info.severity === 'Minor' && highestSeverity !== 'severe' && highestSeverity !== 'major') {
-        highestSeverity = 'minor';
-      }
+async function hasBannerPermission() {
+  try {
+    return await chrome.permissions.contains({ origins: BANNER_ORIGINS });
+  } catch (error) {
+    logger.error('Error checking banner permission', error);
+    return false;
+  }
+}
+
+async function isBannerScriptRegistered() {
+  try {
+    const scripts = await chrome.scripting.getRegisteredContentScripts({ ids: [BANNER_SCRIPT_ID] });
+    return scripts.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+// Bring the registered content script in line with the setting and the
+// granted permission. Called on install, on toggle and when permissions change.
+async function syncBannerRegistration() {
+  try {
+    const { bannerEnabled = false } = await chrome.storage.local.get(['bannerEnabled']);
+    const permitted = await hasBannerPermission();
+    const registered = await isBannerScriptRegistered();
+
+    if (bannerEnabled && !permitted) {
+      // Permission was revoked (e.g. from the extensions page): turn the feature off.
+      logger.warn('Banner enabled but host permission missing; disabling banner');
+      await chrome.storage.local.set({ bannerEnabled: false });
     }
+
+    const shouldBeRegistered = bannerEnabled && permitted;
+
+    if (shouldBeRegistered && !registered) {
+      await chrome.scripting.registerContentScripts([{
+        id: BANNER_SCRIPT_ID,
+        js: [BANNER_SCRIPT_FILE],
+        matches: BANNER_ORIGINS,
+        runAt: 'document_idle',
+        allFrames: false,
+        persistAcrossSessions: true
+      }]);
+      logger.important('Page banner content script registered');
+    } else if (!shouldBeRegistered && registered) {
+      await chrome.scripting.unregisterContentScripts({ ids: [BANNER_SCRIPT_ID] });
+      logger.important('Page banner content script unregistered');
+    }
+
+    return shouldBeRegistered;
+  } catch (error) {
+    logger.error('Error syncing banner registration', error);
+    return false;
   }
-  
-  // Check if we need to create notification for severe alerts
-  if (hasSevere) {
-    checkIfShouldCreateNotification(alerts);
-  }
-  
-  return highestSeverity;
 }
 
-// Manual check can be triggered from popup
+// Inject the banner into tabs that are already open so the user sees the
+// effect immediately after enabling. Tabs we cannot script are skipped.
+async function injectBannerIntoOpenTabs() {
+  try {
+    const tabs = await chrome.tabs.query({ url: BANNER_ORIGINS });
+    await Promise.all(tabs.map(tab =>
+      chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: [BANNER_SCRIPT_FILE]
+      }).catch(() => { /* chrome://, store pages, discarded tabs etc. */ })
+    ));
+  } catch (error) {
+    logger.error('Error injecting banner into open tabs', error);
+  }
+}
+
+// Tell already-injected banners to remove themselves.
+async function removeBannerFromOpenTabs() {
+  try {
+    const tabs = await chrome.tabs.query({ url: BANNER_ORIGINS });
+    await Promise.all(tabs.map(tab =>
+      chrome.tabs.sendMessage(tab.id, { action: 'vmaBannerRemove' }).catch(() => {})
+    ));
+  } catch (error) {
+    logger.error('Error removing banner from open tabs', error);
+  }
+}
+
+async function setBannerEnabled(enabled) {
+  await chrome.storage.local.set({ bannerEnabled: Boolean(enabled) });
+  const active = await syncBannerRegistration();
+  if (active) {
+    await injectBannerIntoOpenTabs();
+  } else {
+    await removeBannerFromOpenTabs();
+  }
+  return active;
+}
+
+chrome.permissions.onRemoved.addListener(() => {
+  syncBannerRegistration();
+});
+
+chrome.permissions.onAdded.addListener(() => {
+  syncBannerRegistration();
+});
+
+// ---------------------------------------------------------------------------
+// Messages from popup, options page and content script
+// ---------------------------------------------------------------------------
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === 'checkForAlerts') {
-    safeCheckForAlerts();
-    sendResponse({ success: true });
-    return true; // Indicates async response
-  } else if (message.action === 'testAlert') {
-    testAlertMode();
-    sendResponse({ success: true });
-    return true; // Indicates async response
-  } else if (message.action === 'silenceAlerts') {
-    // Ta emot meddelande från popup för att tysta varningarna (kvittering)
-    enableSilentMode();
-    sendResponse({ success: true });
-    return true;
-  } else if (message.action === 'clearHistory') {
-    // Nytt: Möjlighet att rensa historiken
-    chrome.storage.local.set({ vmaHistory: [] }, function() {
-      sendResponse({ success: true });
-    });
-    return true;
-  } else if (message.action === 'getVersion') {
-    // Return the current version
-    sendResponse({ version: VERSION });
-    return false; // No async response needed
+  switch (message?.action) {
+    case 'checkForAlerts':
+      checkForAlerts()
+        .then(() => sendResponse({ success: true }))
+        .catch(error => {
+          logger.error('Manual check failed', error);
+          sendResponse({ success: false });
+        });
+      return true;
+
+    case 'testAlert':
+      toggleTestMode()
+        .then(() => sendResponse({ success: true }))
+        .catch(error => {
+          logger.error('Toggle test mode failed', error);
+          sendResponse({ success: false });
+        });
+      return true;
+
+    case 'silenceAlerts':
+      enableSilentMode()
+        .then(() => sendResponse({ success: true }))
+        .catch(() => sendResponse({ success: false }));
+      return true;
+
+    case 'clearHistory':
+      chrome.storage.local.set({ vmaHistory: [] }, () => sendResponse({ success: true }));
+      return true;
+
+    case 'getVersion':
+      sendResponse({ version: VERSION });
+      return false;
+
+    case 'setBannerEnabled':
+      setBannerEnabled(message.enabled)
+        .then(active => sendResponse({ success: true, active }))
+        .catch(error => {
+          logger.error('Failed to set banner state', error);
+          sendResponse({ success: false });
+        });
+      return true;
+
+    case 'dismissBanner': {
+      // From the content script: hide the banner for these alerts in all tabs
+      const ids = Array.isArray(message.identifiers) ? message.identifiers.filter(id => typeof id === 'string') : [];
+      chrome.storage.local.get(['bannerDismissed']).then(({ bannerDismissed = [] }) => {
+        const merged = Array.from(new Set([...bannerDismissed, ...ids]));
+        return chrome.storage.local.set({ bannerDismissed: merged });
+      }).then(() => sendResponse({ success: true }))
+        .catch(() => sendResponse({ success: false }));
+      return true;
+    }
+
+    default:
+      return false;
   }
 });
 
 // Aktivera tyst läge för aktuella VMA (efter kvittering)
 async function enableSilentMode() {
   try {
-    // Clear all existing notifications first
     chrome.notifications.getAll((notifications) => {
-      Object.keys(notifications).forEach(notificationId => {
-        chrome.notifications.clear(notificationId);
-      });
+      Object.keys(notifications || {}).forEach(id => chrome.notifications.clear(id));
     });
-    
-    // Hämta aktuell ikon-typ
+
     const { activeAlerts = [] } = await chrome.storage.local.get(['activeAlerts']);
-    
-    // Sätt tyst läge i storage
     await chrome.storage.local.set({ silentMode: true });
-    
-    // Uppdatera badge till tyst läge (ingen blinking, ingen text)
+
     if (activeAlerts.length > 0) {
-      const iconType = determineIconType(activeAlerts);
-      startTwoBadgeBlink(iconType, true); // True = tyst läge
+      updateBadge(determineIconType(activeAlerts), true);
     }
-    
     logger.important('Silent mode enabled - notifications cleared and blinking stopped');
   } catch (error) {
     logger.error('Error enabling silent mode:', error);
   }
 }
 
-// Set test mode for alert visualization
-function testAlertMode() {
-  chrome.storage.sync.get('testMode', (result) => {
-    const testMode = !result.testMode;
-    logger.info(`Toggling test mode: ${testMode}`);
-    
-    // Reset silent mode when changing test mode
-    chrome.storage.local.set({ silentMode: false });
-    
-    // Force blue icon when entering test mode
-    if (testMode) {
-      chrome.action.setIcon({ path: ICONS.test });
-      
-      // När testläge aktiveras, rensa historiken från test-VMA
-      cleanHistoryFromTestAlerts();
-    }
-    
-    chrome.storage.sync.set({ testMode }, () => {
-      // Ensure storage is set before checking alerts
-      setTimeout(() => {
-        safeCheckForAlerts();
-      }, 500);
-    });
-  });
-}
+// Toggle test mode for alert visualization
+async function toggleTestMode() {
+  const { testMode: current = false } = await chrome.storage.sync.get(['testMode']);
+  const testMode = !current;
+  logger.info(`Toggling test mode: ${testMode}`);
 
-// Handle notification clicks
-chrome.notifications.onClicked.addListener((notificationId) => {
-  if (notificationId === 'vma-alert' || notificationId === 'vma-alert-details') {
-    // När notifikationen klickas, öppna tilläggets popup
-    try {
-      chrome.action.openPopup();
-    } catch (error) {
-      logger.error('Error opening popup:', error);
-      // Fallback: Visa ett nytt meddelande som guide
-      chrome.notifications.create('vma-popup-guide', {
-        type: 'basic',
-        iconUrl: 'icons/lamp-red-128.png',
-        title: chrome.i18n.getMessage('clickVmaIcon'),
-        message: chrome.i18n.getMessage('clickIconDetails'),
-        priority: 2
-      });
-    }
-    chrome.notifications.clear(notificationId);
+  await chrome.storage.local.set({ silentMode: false });
+
+  if (testMode) {
+    await setIconSafe('test');
+    cleanHistoryFromTestAlerts();
   }
-});
 
-// Set a startup delay to ensure browser is fully initialized
-setTimeout(() => {
-  browserReady = true;
-  logger.important('Browser ready state set to true');
-  safeCheckForAlerts(); // Initial check with delay
-  
-  // Rensa historiken från test-VMA vid start
-  cleanHistoryFromTestAlerts();
-}, STARTUP_DELAY);
+  await chrome.storage.sync.set({ testMode });
+  await checkForAlerts();
+}

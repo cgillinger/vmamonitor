@@ -1,19 +1,25 @@
 {
   "manifest_version": 3,
-  "name": "VMA Notifieringar - Sveriges krisberedskap",
-  "version": "1.2",
-  "description": "Övervakar och visar Svenska VMA (Viktigt Meddelande till Allmänheten) från Sveriges Radio i realtid",
+  "name": "__MSG_extensionName__",
+  "version": "1.3",
+  "description": "__MSG_extensionDescription__",
   "default_locale": "sv",
   "permissions": [
     "storage",
     "alarms",
-    "notifications"
+    "notifications",
+    "scripting"
   ],
   "host_permissions": [
     "https://vmaapi.sr.se/*"
   ],
+  "optional_host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "action": {
     "default_popup": "popup/popup.html",

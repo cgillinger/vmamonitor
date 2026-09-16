@@ -39,3 +39,5 @@ npm-debug.log*
 .Spotlight-V100
 .Trashes
 Icon?
+# Packaged extension builds (build locally, do not commit)
+*.zip

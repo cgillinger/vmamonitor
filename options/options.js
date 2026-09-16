@@ -1,130 +1,92 @@
+import { getExtensionVersion } from '../shared/vma-utils.js';
+
 document.addEventListener('DOMContentLoaded', init);
 
 const DEBUG = false; // Set to false in production
-const VERSION = '1.2'; // Updated to version 1.2
+const VERSION = getExtensionVersion(); // Single source of truth: manifest.json
+const BANNER_ORIGINS = ['http://*/*', 'https://*/*'];
+const WHATS_NEW_KEYS = ['whatsNew13_1', 'whatsNew13_2', 'whatsNew13_3', 'whatsNew13_4', 'whatsNew13_5'];
 
 // Logger utility for production-appropriate logging
 const logger = {
-  info: function(message) {
-    if (DEBUG) {
-      console.log('[VMA-INFO] ' + message);
-    }
+  info(message) {
+    if (DEBUG) console.log('[VMA-INFO] ' + message);
   },
-  warn: function(message) {
+  warn(message) {
     console.warn('[VMA-WARN] ' + message);
   },
-  error: function(message, error) {
+  error(message, error) {
     console.error('[VMA-ERROR] ' + message, error);
   },
-  important: function(message) {
+  important(message) {
     console.log('[VMA-IMPORTANT] ' + message);
   }
 };
 
-// Lokalisera UI
-function localizeUI() {
+// ---------------------------------------------------------------------------
+// Localisation
+//
+// chrome.i18n.getMessage() always follows the browser UI language. This page
+// should follow the language the user picked in the extension, so we load the
+// matching _locales/<lang>/messages.json ourselves and fall back to chrome.i18n.
+// ---------------------------------------------------------------------------
+
+const messageCache = {};
+
+async function loadMessages(lang) {
+  if (messageCache[lang]) return messageCache[lang];
   try {
-    // Get preferred language
-    chrome.storage.sync.get(['preferredLanguage'], (result) => {
-      const lang = result.preferredLanguage || 'sv';
-      updateLanguageUI(lang);
-    });
+    const response = await fetch(chrome.runtime.getURL(`_locales/${lang}/messages.json`));
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    messageCache[lang] = await response.json();
   } catch (error) {
-    logger.error('Error localizing UI:', error);
+    logger.warn(`Could not load messages for "${lang}": ${error}`);
+    messageCache[lang] = {};
   }
+  return messageCache[lang];
 }
 
-// Update UI elements with correct language
-function updateLanguageUI(lang) {
-  try {
-    // Update page language attribute for screen readers
-    document.documentElement.lang = lang;
-    
-    // Update page title
-    document.title = chrome.i18n.getMessage('settingsTitle') || 'VMA Notifieringar - Inställningar';
-    
-    // Update h1
-    document.querySelector('header h1').textContent = chrome.i18n.getMessage('settingsTitle') || 'VMA Notifieringar - Inställningar';
-    
-    // Update region label
-    document.querySelector('label[for="region-select"]').textContent = chrome.i18n.getMessage('regionLabel') || 'Region för övervakning:';
-    
-    // Update region hint
-    document.querySelectorAll('.hint')[0].textContent = chrome.i18n.getMessage('regionHint') || 
-      'Välj region för att övervaka VMA-meddelanden. Välj "Hela Sverige" för att övervaka alla regioner.';
-    
-    // Update language label
-    document.querySelector('label[for="language-select"]').textContent = chrome.i18n.getMessage('languageLabel') || 'Föredraget språk:';
-    
-    // Update language hint
-    document.querySelectorAll('.hint')[1].textContent = chrome.i18n.getMessage('languageHint') || 
-      'Välj föredraget språk för VMA-meddelanden. Engelska översättningar visas när de finns tillgängliga.';
-    
-    // Update interval label
-    document.querySelector('label[for="check-interval"]').textContent = chrome.i18n.getMessage('intervalLabel') || 'Uppdateringsintervall:';
-    
-    // Update interval info
-    document.querySelector('.info-text').textContent = chrome.i18n.getMessage('intervalInfo') || 'VMA-API:et kontrolleras var 5:e minut';
-    
-    // Update save button
-    document.getElementById('save-btn').textContent = chrome.i18n.getMessage('saveButton') || 'Spara inställningar';
-    
-    // Update What's New section for v1.2
-    const whatsNewSection = document.querySelector('.what-is-new');
-    if (whatsNewSection) {
-      whatsNewSection.querySelector('h2').textContent = lang === 'sv' ? 'Nyheter i version 1.2' : 'What\'s new in version 1.2';
-      
-      const list = whatsNewSection.querySelector('ul');
-      list.innerHTML = '';
-      
-      const newFeatures = lang === 'sv' ? [
-        'Förbättrad tillgänglighet för skärmläsare och tangentbordsnavigering',
-        'ARIA-etiketter och live regions för bättre skärmläsarstöd',
-        'Tangentbordsgenvägar och fokusindikatorer',
-        'Stöd för "high contrast" och "reduced motion" preferenser',
-        'Förbättrade notifikationer till skärmläsare',
-        'Bättre strukturering av innehåll för hjälpmedel'
-      ] : [
-        'Improved accessibility for screen readers and keyboard navigation',
-        'ARIA labels and live regions for better screen reader support',
-        'Keyboard shortcuts and focus indicators',
-        'Support for "high contrast" and "reduced motion" preferences',
-        'Enhanced screen reader announcements',
-        'Better content structure for assistive technology'
-      ];
-      
-      newFeatures.forEach(feature => {
-        const li = document.createElement('li');
-        li.textContent = feature;
-        list.appendChild(li);
-      });
-    }
-    
-    // Update footer
-    const footer = document.querySelector('footer p');
-    const footerLink = footer.querySelector('a');
-    const linkHref = footerLink.getAttribute('href');
-    const linkText = footerLink.textContent;
-    
-    footer.innerHTML = '';
-    footer.textContent = 'VMA Notifieringar v' + VERSION + ' - ' + (chrome.i18n.getMessage('usesApi') || 'Använder') + ' ';
-    
-    const newLink = document.createElement('a');
-    newLink.href = linkHref;
-    newLink.textContent = linkText;
-    newLink.target = '_blank';
-    
-    footer.appendChild(newLink);
-  } catch (error) {
-    logger.error('Error updating language UI:', error);
-  }
+let messages = {};
+
+function t(key, fallback = '') {
+  return messages[key]?.message || chrome.i18n.getMessage(key) || fallback;
 }
 
-// Initialize the options page
+async function applyLanguage(lang) {
+  messages = await loadMessages(lang === 'en' ? 'en' : 'sv');
+  document.documentElement.lang = lang;
+  document.title = t('settingsTitle', document.title);
+
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const text = t(el.dataset.i18n);
+    if (text) el.textContent = text;
+  });
+
+  document.getElementById('whats-new-title').textContent = `${t('whatsNewTitle', 'Nyheter i version')} ${VERSION}`;
+  const list = document.getElementById('whats-new-list');
+  list.replaceChildren();
+  WHATS_NEW_KEYS.forEach(key => {
+    const text = t(key);
+    if (!text) return;
+    const li = document.createElement('li');
+    li.textContent = text;
+    list.appendChild(li);
+  });
+
+  document.getElementById('version-badge').textContent = `v${VERSION}`;
+  document.getElementById('footer-text').textContent = `VMA Notifieringar v${VERSION}`;
+}
+
+// ---------------------------------------------------------------------------
+// Init
+// ---------------------------------------------------------------------------
+
 async function init() {
   try {
-    await localizeUI();
+    const { preferredLanguage = 'sv' } = await chrome.storage.sync.get(['preferredLanguage']);
+    await applyLanguage(preferredLanguage);
     await loadSettings();
+    await loadBannerState();
     setupEventListeners();
     setupAccessibility();
     logger.info('Options page initialized');
@@ -133,131 +95,170 @@ async function init() {
   }
 }
 
-// Setup accessibility features
 function setupAccessibility() {
-  // Add keyboard navigation
   document.addEventListener('keydown', (event) => {
-    // Escape key to close options (if in popup mode)
+    // Escape closes the page when it was opened as a separate window
     if (event.key === 'Escape' && window.opener !== null) {
       window.close();
     }
   });
-  
-  // Add focus indicators
-  const focusableElements = document.querySelectorAll('select, button');
-  focusableElements.forEach(element => {
-    element.addEventListener('focus', () => {
-      element.style.outline = '2px solid #054a91';
-      element.style.outlineOffset = '2px';
-    });
-    
-    element.addEventListener('blur', () => {
-      element.style.outline = 'none';
-    });
-  });
 }
 
-// Load saved settings
 async function loadSettings() {
   try {
     const settings = await chrome.storage.sync.get(['geoCode', 'preferredLanguage']);
-    
-    // Set region select value
-    const regionSelect = document.getElementById('region-select');
     if (settings.geoCode) {
-      regionSelect.value = settings.geoCode;
-      logger.info(`Loaded region setting: ${settings.geoCode}`);
-    } else {
-      logger.info('No region setting found, using default');
+      document.getElementById('region-select').value = settings.geoCode;
     }
-    
-    // Set language select value
-    const languageSelect = document.getElementById('language-select');
     if (settings.preferredLanguage) {
-      languageSelect.value = settings.preferredLanguage;
-      logger.info(`Loaded language setting: ${settings.preferredLanguage}`);
-    } else {
-      logger.info('No language setting found, using default');
+      document.getElementById('language-select').value = settings.preferredLanguage;
     }
   } catch (error) {
     logger.error('Error loading settings:', error);
-    showStatus(chrome.i18n.getMessage('errorMessage') || 'Kunde inte ladda inställningar', true);
+    showStatus('status', t('errorMessage', 'Kunde inte ladda inställningar'), true);
   }
 }
 
-// Set up event listeners
 function setupEventListeners() {
   document.getElementById('save-btn').addEventListener('click', saveSettings);
-  document.getElementById('language-select').addEventListener('change', onLanguageChange);
-  logger.info('Event listeners set up');
+  document.getElementById('language-select').addEventListener('change', (event) => {
+    applyLanguage(event.target.value);
+  });
+  document.getElementById('banner-toggle').addEventListener('change', onBannerToggle);
+
+  // Reflect changes made elsewhere (e.g. permission revoked from the extensions page)
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && 'bannerEnabled' in changes) {
+      document.getElementById('banner-toggle').checked = Boolean(changes.bannerEnabled.newValue);
+    }
+  });
 }
 
-// Handle language change
-function onLanguageChange(event) {
-  const newLanguage = event.target.value;
-  updateLanguageUI(newLanguage);
-}
-
-// Save settings with accessibility announcements
 async function saveSettings() {
   try {
     const geoCode = document.getElementById('region-select').value;
     const preferredLanguage = document.getElementById('language-select').value;
-    
+
     logger.important(`Saving settings - Region: ${geoCode}, Language: ${preferredLanguage}`);
-    
     await chrome.storage.sync.set({ geoCode, preferredLanguage });
-    
+
     // Trigger a refresh in the background script
-    chrome.runtime.sendMessage({ action: 'checkForAlerts' });
-    
-    const successMessage = chrome.i18n.getMessage('savedMessage') || 'Inställningar sparade!';
-    showStatus(successMessage);
-    
-    // Announce to screen reader
-    if (window.speechSynthesis && window.SpeechSynthesisUtterance) {
-      const utterance = new SpeechSynthesisUtterance(successMessage);
-      utterance.lang = preferredLanguage === 'en' ? 'en-US' : 'sv-SE';
-      utterance.volume = 0.5;
-      window.speechSynthesis.speak(utterance);
-    }
-    
-    // Om detta är ett popup-fönster, stäng det efter en kort fördröjning
-    if (window.opener !== null || window.history.length <= 1) {
-      setTimeout(() => {
-        window.close();
-      }, 1500);
-    }
+    chrome.runtime.sendMessage({ action: 'checkForAlerts' }, () => void chrome.runtime.lastError);
+
+    showStatus('status', t('savedMessage', 'Inställningar sparade!'));
   } catch (error) {
     logger.error('Error saving settings:', error);
-    showStatus(chrome.i18n.getMessage('errorMessage') || 'Kunde inte spara inställningar', true);
+    showStatus('status', t('errorMessage', 'Kunde inte spara inställningar'), true);
   }
 }
 
-// Show status message with enhanced accessibility
-function showStatus(message, isError = false) {
-  const status = document.getElementById('status');
+// ---------------------------------------------------------------------------
+// Page banner (opt-in). Saved immediately: the permission prompt must be
+// triggered by the user's click, so it cannot wait for the Save button.
+// ---------------------------------------------------------------------------
+
+async function loadBannerState() {
+  const toggle = document.getElementById('banner-toggle');
+  try {
+    const [{ bannerEnabled = false }, permitted] = await Promise.all([
+      chrome.storage.local.get(['bannerEnabled']),
+      chrome.permissions.contains({ origins: BANNER_ORIGINS })
+    ]);
+    toggle.checked = Boolean(bannerEnabled && permitted);
+    if (bannerEnabled && !permitted) {
+      // Permission was revoked outside the extension; make storage consistent.
+      sendBannerState(false);
+    }
+  } catch (error) {
+    logger.error('Error loading banner state:', error);
+    toggle.checked = false;
+  }
+}
+
+function sendBannerState(enabled) {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage({ action: 'setBannerEnabled', enabled }, (response) => {
+      if (chrome.runtime.lastError) {
+        logger.error('Background did not respond', chrome.runtime.lastError);
+        resolve({ success: false });
+        return;
+      }
+      resolve(response || { success: false });
+    });
+  });
+}
+
+async function onBannerToggle(event) {
+  const toggle = event.target;
+  const wanted = toggle.checked;
+  toggle.disabled = true;
+
+  try {
+    if (wanted) {
+      const granted = await chrome.permissions.request({ origins: BANNER_ORIGINS });
+      if (!granted) {
+        toggle.checked = false;
+        showStatus('banner-status', t('bannerPermissionDenied', 'Behörigheten nekades.'), true);
+        return;
+      }
+      const result = await sendBannerState(true);
+      if (!result.success || !result.active) {
+        toggle.checked = false;
+        showStatus('banner-status', t('bannerError', 'Kunde inte ändra inställningen'), true);
+        return;
+      }
+      showStatus('banner-status', t('bannerEnabled', 'Varningsbalken är aktiverad'));
+    } else {
+      const result = await sendBannerState(false);
+      // Also drop the broad host permission so the extension holds no more access than needed.
+      try {
+        await chrome.permissions.remove({ origins: BANNER_ORIGINS });
+      } catch (error) {
+        logger.warn('Could not remove host permission: ' + error);
+      }
+      if (!result.success) {
+        showStatus('banner-status', t('bannerError', 'Kunde inte ändra inställningen'), true);
+        return;
+      }
+      showStatus('banner-status', t('bannerDisabled', 'Varningsbalken är avstängd'));
+    }
+  } catch (error) {
+    logger.error('Error toggling banner:', error);
+    toggle.checked = false;
+    showStatus('banner-status', t('bannerError', 'Kunde inte ändra inställningen'), true);
+  } finally {
+    toggle.disabled = false;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Status messages
+// ---------------------------------------------------------------------------
+
+const statusTimers = {};
+
+function showStatus(elementId, message, isError = false) {
+  const status = document.getElementById(elementId);
+  if (!status) return;
+
   status.textContent = message;
   status.classList.remove('hidden');
-  
-  // Add ARIA live region attributes
+  status.classList.toggle('error', isError);
   status.setAttribute('role', 'status');
   status.setAttribute('aria-live', isError ? 'assertive' : 'polite');
   status.setAttribute('aria-atomic', 'true');
-  
+
   if (isError) {
-    status.classList.add('error');
     logger.error(`Status error: ${message}`);
   } else {
-    status.classList.remove('error');
     logger.info(`Status message: ${message}`);
   }
-  
-  // Hide status after 3 seconds
-  setTimeout(() => {
+
+  clearTimeout(statusTimers[elementId]);
+  statusTimers[elementId] = setTimeout(() => {
     status.classList.add('hidden');
     status.removeAttribute('role');
     status.removeAttribute('aria-live');
     status.removeAttribute('aria-atomic');
-  }, 3000);
+  }, 4000);
 }

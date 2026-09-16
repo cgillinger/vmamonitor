@@ -1,9 +1,11 @@
+import { isTestAlert, findBestMatchingInfo, isSevereAlert, getAlertSeverity, getExtensionVersion } from '../shared/vma-utils.js';
+
 document.addEventListener('DOMContentLoaded', init);
 
 let testMode = false;
 let currentLanguage = 'sv'; // Default to Swedish
 const DEBUG = false; // Set to false in production
-const VERSION = '1.2'; // Updated to version 1.2
+const VERSION = getExtensionVersion(); // Single source of truth: manifest.json
 
 // Logger utility for production-appropriate logging
 const logger = {
@@ -113,9 +115,6 @@ function announceStatusToScreenReader() {
 // Apply language to the interface
 async function updateUIForLanguage(language) {
   try {
-    // Set the current UI language
-    chrome.i18n.getUILanguage = function() { return language === 'sv' ? 'sv' : 'en'; };
-    
     // Update language button indicator and accessibility
     const langBtn = document.getElementById('language-btn');
     langBtn.setAttribute('data-lang', language);
@@ -323,39 +322,6 @@ function showHistoryTab() {
   loadVmaHistory();
 }
 
-// Find the best matching info object based on language preference
-function findBestMatchingInfo(infoArray, preferredLanguage) {
-  if (!infoArray || infoArray.length === 0) {
-    return { info: {}, langCode: 'sv' }; // Return empty object if no info available
-  }
-  
-  // For Swedish preference
-  if (preferredLanguage === 'sv') {
-    // First try to find Swedish info
-    const svInfo = infoArray.find(info => info.language === 'sv-SE');
-    if (svInfo) return { info: svInfo, langCode: 'sv' };
-    
-    // If no Swedish found, use English if available
-    const enInfo = infoArray.find(info => info.language === 'en-US');
-    if (enInfo) return { info: enInfo, langCode: 'en' };
-  } 
-  // For English preference
-  else if (preferredLanguage === 'en') {
-    // First try to find English info
-    const enInfo = infoArray.find(info => info.language === 'en-US');
-    if (enInfo) return { info: enInfo, langCode: 'en' };
-    
-    // If no English found, fall back to Swedish
-    const svInfo = infoArray.find(info => info.language === 'sv-SE');
-    if (svInfo) return { info: svInfo, langCode: 'sv' };
-  }
-  
-  // If no match by language or fallback, just return the first info
-  const firstInfo = infoArray[0];
-  const langCode = firstInfo.language === 'en-US' ? 'en' : 'sv';
-  return { info: firstInfo, langCode };
-}
-
 // Load alerts from storage
 async function loadAlerts() {
   try {
@@ -405,14 +371,7 @@ async function loadAlerts() {
     
     // Check if we have severe alerts to show acknowledge button
     // But don't show it for test alerts
-    const hasSevere = activeAlerts.some(alert => {
-      if (!alert.info || alert.info.length === 0) return false;
-      // Don't count test alerts
-      if (alert.status === 'Test') return false;
-      return alert.info.some(info => 
-        info.severity === 'Extreme' || info.severity === 'Severe'
-      );
-    });
+    const hasSevere = activeAlerts.some(alert => alert.status !== 'Test' && isSevereAlert(alert));
     
     // Show/hide acknowledge buttons in both popup and footer
     if (hasSevere) {
@@ -443,43 +402,9 @@ async function loadAlerts() {
   }
 }
 
-// Avgör om ett VMA är ett test-VMA baserat på flera kriterier
-function isTestAlert(alert) {
-  // Kontrollera status
-  if (alert.status === 'Test') {
-    return true;
-  }
-  
-  // Kontrollera identifier
-  if (alert.identifier && (
-      alert.identifier.includes('TEST') || 
-      alert.identifier.includes('test')
-  )) {
-    return true;
-  }
-  
-  // Kontrollera beskrivning
-  if (alert.info && alert.info.length > 0) {
-    // Check all info objects
-    return alert.info.some(info => {
-      const description = info.description || '';
-      const event = info.event || '';
-      
-      return description.includes('TEST') || 
-             description.includes('test') || 
-             description.includes('Test') ||
-             event.includes('TEST') || 
-             event.includes('test') || 
-             event.includes('Test');
-    });
-  }
-  
-  return false;
-}
-
 // Ladda VMA-historik
 async function loadVmaHistory() {
-  console.log('Loading VMA history');
+  logger.info('Loading VMA history');
   
   try {
     const { vmaHistory = [] } = await chrome.storage.local.get(['vmaHistory']);
@@ -547,7 +472,7 @@ function createAlertElement(alert, isHistory = false, preferredLanguage = 'sv') 
       
       // Set severity class if available
       if (alert.info && alert.info.length > 0) {
-        const severity = alert.info[0].severity;
+        const severity = getAlertSeverity(alert);
         if (severity === 'Minor') {
           alertType.classList.add('minor');
           alertType.setAttribute('aria-label', 
@@ -683,7 +608,7 @@ function toggleTestMode() {
   document.getElementById('no-alerts').classList.add('hidden');
   document.getElementById('alerts-list').classList.add('hidden');
   
-  console.log('Toggling test mode, current state: ' + testMode);
+  logger.info('Toggling test mode, current state: ' + testMode);
   
   // Announce test mode toggle
   const announcement = currentLanguage === 'sv' 
@@ -691,24 +616,15 @@ function toggleTestMode() {
     : (testMode ? 'Deactivating test mode' : 'Activating test mode');
   announceToScreenReader(announcement);
   
+  // The background script responds once the mode is toggled and alerts re-fetched.
   chrome.runtime.sendMessage({ action: 'testAlert' }, function(response) {
-    console.log('Test mode toggle response received');
-    
     if (response && response.success) {
       testMode = !testMode;
       updateTestButton();
-      
-      // Force reload alerts after a delay
-      setTimeout(function() {
-        chrome.runtime.sendMessage({ action: 'checkForAlerts' }, function() {
-          setTimeout(loadAlerts, 500);
-        });
-      }, 1000);
     } else {
-      console.error('Failed to toggle test mode');
-      // Try to reload anyway
-      setTimeout(loadAlerts, 1500);
+      logger.error('Failed to toggle test mode');
     }
+    loadAlerts();
   });
 }
 
@@ -739,16 +655,9 @@ async function acknowledgeAlerts() {
     const severeAlertIds = [];
     
     // Find severe alerts
-    for (let i = 0; i < activeAlerts.length; i++) {
-      const alert = activeAlerts[i];
-      if (!alert.info || alert.info.length === 0) continue;
-      
-      for (let j = 0; j < alert.info.length; j++) {
-        const info = alert.info[j];
-        if (info.severity === 'Extreme' || info.severity === 'Severe') {
-          severeAlertIds.push(alert.identifier + '::' + now);
-          break;
-        }
+    for (const alert of activeAlerts) {
+      if (isSevereAlert(alert)) {
+        severeAlertIds.push(alert.identifier + '::' + now);
       }
     }
     
@@ -808,14 +717,6 @@ async function acknowledgeAlerts() {
       footerBtn.textContent = currentLanguage === 'sv' ? 'Kvittera VMA' : 'Acknowledge Alert';
       footerBtn.style.backgroundColor = '#ff0000';
     }, 2000);
-    
-    // Close the popup window if it was created by the background script
-    if (window.opener === null && window.history.length <= 1) {
-      // This appears to be a standalone popup window
-      setTimeout(function() {
-        window.close();
-      }, 2000);
-    }
   } catch (error) {
     console.error('Error acknowledging alerts:', error);
   }

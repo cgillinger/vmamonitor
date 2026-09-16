@@ -160,8 +160,8 @@
     "description": "Information text about history"
   },
   "whatsNewTitle": {
-    "message": "What's new in version 1.2",
-    "description": "Title for version news"
+    "message": "What's new in version",
+    "description": "Title for what's new (followed by version number)"
   },
   "languageButtonTitle": {
     "message": "Language/Språk",
@@ -174,5 +174,65 @@
   "usesApi": {
     "message": "Uses",
     "description": "Text for 'Uses' in the footer"
+  },
+  "languageIndicatorLabel": {
+    "message": "Language:",
+    "description": "Language label for screen readers"
+  },
+  "bannerSectionTitle": {
+    "message": "Alert bar on web pages",
+    "description": "Heading for the banner setting"
+  },
+  "bannerLabel": {
+    "message": "Show active VMA as a bar at the top of web pages",
+    "description": "Checkbox label"
+  },
+  "bannerHint": {
+    "message": "Optional. Requires permission for the extension to read and change the web pages you visit, because the bar is inserted into the page itself. The permission is used only to show the bar. The bar cannot appear on the browser's own pages (e.g. new tab or settings) or in full-screen mode. The icon and notifications keep working regardless.",
+    "description": "Help text for the banner setting"
+  },
+  "bannerEnabled": {
+    "message": "Alert bar enabled",
+    "description": "Status when the bar is turned on"
+  },
+  "bannerDisabled": {
+    "message": "Alert bar disabled",
+    "description": "Status when the bar is turned off"
+  },
+  "bannerPermissionDenied": {
+    "message": "Permission was denied. The bar stays off.",
+    "description": "When the user denies permission"
+  },
+  "bannerError": {
+    "message": "Could not change the alert bar setting",
+    "description": "Error when changing"
+  },
+  "settingsSavedInstantly": {
+    "message": "Saved immediately",
+    "description": "Indicates the setting is saved without the Save button"
+  },
+  "whatsNew13_1": {
+    "message": "Optional alert bar at the top of web pages (enable it here in settings)",
+    "description": "News 1.3"
+  },
+  "whatsNew13_2": {
+    "message": "Notifications now show reliably even when the browser wakes the extension in the background",
+    "description": "News 1.3"
+  },
+  "whatsNew13_3": {
+    "message": "The toolbar icon and badge always end up in a stable state",
+    "description": "News 1.3"
+  },
+  "whatsNew13_4": {
+    "message": "The version number comes from a single place (the manifest) across the extension",
+    "description": "News 1.3"
+  },
+  "whatsNew13_5": {
+    "message": "The settings page now follows your chosen language",
+    "description": "News 1.3"
+  },
+  "saveSettingsDescription": {
+    "message": "Saves the settings and updates VMA monitoring according to your choices",
+    "description": "Description of the save button for screen readers"
   }
 }

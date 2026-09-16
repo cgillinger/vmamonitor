@@ -160,8 +160,8 @@
     "description": "Informationstext om historik"
   },
   "whatsNewTitle": {
-    "message": "Nyheter i version 1.2",
-    "description": "Titel för nyheter i versionen"
+    "message": "Nyheter i version",
+    "description": "Titel för nyheter i versionen (följs av versionsnummer)"
   },
   "languageButtonTitle": {
     "message": "Språk/Language",
@@ -287,10 +287,6 @@
     "message": "Tidpunkt:",
     "description": "Etikett för tidpunkt för skärmläsare"
   },
-  "languageLabel": {
-    "message": "Språk:",
-    "description": "Etikett för språk för skärmläsare"
-  },
   "minorSeverity": {
     "message": "Mindre allvarlig",
     "description": "Mindre allvarlighetsgrad för skärmläsare"
@@ -318,5 +314,61 @@
   "saveSettingsDescription": {
     "message": "Sparar inställningarna och uppdaterar VMA-övervakningen enligt dina val",
     "description": "Beskrivning av spara-knappen för skärmläsare"
+  },
+  "languageIndicatorLabel": {
+    "message": "Språk:",
+    "description": "Etikett för språk för skärmläsare"
+  },
+  "bannerSectionTitle": {
+    "message": "Varningsbalk på webbsidor",
+    "description": "Rubrik för balk-inställningen"
+  },
+  "bannerLabel": {
+    "message": "Visa aktiva VMA som en balk överst på webbsidor",
+    "description": "Etikett för kryssrutan"
+  },
+  "bannerHint": {
+    "message": "Valfritt. Kräver att tillägget får läsa och ändra webbsidor du besöker, eftersom balken läggs in på själva sidan. Behörigheten används enbart för att visa balken. Balken kan inte visas på webbläsarens egna sidor (t.ex. ny flik eller inställningar) eller i helskärmsläge. Ikonen och notifieringarna fungerar som vanligt oavsett.",
+    "description": "Hjälptext för balk-inställningen"
+  },
+  "bannerEnabled": {
+    "message": "Varningsbalken är aktiverad",
+    "description": "Status när balken slagits på"
+  },
+  "bannerDisabled": {
+    "message": "Varningsbalken är avstängd",
+    "description": "Status när balken slagits av"
+  },
+  "bannerPermissionDenied": {
+    "message": "Behörigheten nekades. Balken förblir avstängd.",
+    "description": "När användaren nekar behörighet"
+  },
+  "bannerError": {
+    "message": "Kunde inte ändra inställningen för varningsbalken",
+    "description": "Fel vid ändring"
+  },
+  "settingsSavedInstantly": {
+    "message": "Sparas direkt",
+    "description": "Indikerar att inställningen sparas utan Spara-knappen"
+  },
+  "whatsNew13_1": {
+    "message": "Valfri varningsbalk överst på webbsidor (slås på här i inställningarna)",
+    "description": "Nyhet 1.3"
+  },
+  "whatsNew13_2": {
+    "message": "Notifieringar visas nu tillförlitligt även när webbläsaren väckt tillägget i bakgrunden",
+    "description": "Nyhet 1.3"
+  },
+  "whatsNew13_3": {
+    "message": "Ikonen och märket i verktygsfältet hamnar alltid i ett stabilt läge",
+    "description": "Nyhet 1.3"
+  },
+  "whatsNew13_4": {
+    "message": "Versionsnumret hämtas från ett ställe (manifestet) i hela tillägget",
+    "description": "Nyhet 1.3"
+  },
+  "whatsNew13_5": {
+    "message": "Inställningssidan följer nu det språk du valt",
+    "description": "Nyhet 1.3"
   }
 }

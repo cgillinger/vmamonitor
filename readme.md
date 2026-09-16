@@ -13,6 +13,7 @@ VMA (Viktigt Meddelande till Allmänheten) är ett varningssystem som används i
 ## Funktioner
 
 - **Realtidsövervakning**: Kontrollerar kontinuerligt VMA-API:et var 5:e minut
+- **Varningsbalk på webbsidor (valfritt)**: Visa aktiva VMA som en balk överst på de webbsidor du besöker. Avstängt som standard och kräver att du själv godkänner en extra behörighet i inställningarna
 - **Visuell indikation**: Ikonen ändrar färg baserat på allvarlighetsgrad:
   - 🟢 Grön: Inga aktiva VMA
   - 🟡 Gul: Mindre allvarligt VMA
@@ -34,6 +35,14 @@ VMA (Viktigt Meddelande till Allmänheten) är ett varningssystem som används i
 - **Screen reader announcements**: Automatiska meddelanden för statusändringar
 
 ## Versionsinformation
+
+### Version 1.3 (September 2026)
+- **Valfri varningsbalk på webbsidor**: Slå på i inställningarna för att få aktiva VMA som en balk överst på vanliga webbsidor. Kräver behörighet att läsa och ändra webbsidor, som bara begärs om du aktiverar funktionen och tas bort igen när du stänger av den
+- **Tillförlitligare notifieringar**: Notifieringar visades tidigare inte om webbläsaren väckt tillägget i bakgrunden för en schemalagd kontroll
+- **Stabil ikon och badge**: Märket i verktygsfältet hamnar alltid i ett tydligt läge även om webbläsaren pausar tillägget
+- **Ett versionsnummer**: Versionen hämtas från `manifest.json` överallt, i stället för att vara hårdkodad på fem ställen
+- **Inställningssidan följer valt språk**: Tidigare följde den webbläsarens språk oavsett vad du valt
+- **Kodstädning**: Gemensam hjälpmodul (`shared/vma-utils.js`), borttagna paketerade zip-filer ur repot, MIT-licensfil tillagd
 
 ### Version 1.2 (May 2025)
 - **Tillgänglighetsförbättringar**: Komplett omarbetning för bättre stöd av skärmläsare och tangentbordsnavigering
@@ -90,6 +99,14 @@ Efter installation dyker en VMA-ikon upp i Edge:s verktygsfält. Som standard ä
 3. Välj föredraget språk (svenska eller engelska)
 4. Klicka på "Spara inställningar"
 
+### Varningsbalk på webbsidor (valfritt):
+1. Öppna inställningar och kryssa i "Visa aktiva VMA som en balk överst på webbsidor"
+2. Godkänn behörighetsfrågan från webbläsaren. Behörigheten behövs eftersom balken läggs in på själva webbsidan
+3. Vid aktivt VMA visas nu en balk överst på alla vanliga webbsidor (http/https). Du kan fälla ut hela texten eller dölja balken för just det VMA:t
+4. Kryssa ur rutan för att stänga av. Behörigheten tas då bort igen
+
+Begränsningar: balken kan inte visas på webbläsarens egna sidor (ny flik, inställningar, tilläggsbutiken), i PDF-visaren eller i helskärmsläge. Notifieringar och ikonen i verktygsfältet fungerar oavsett.
+
 ### Testläge:
 1. Klicka på "Testa VMA" i popup-fönstrets nedre del
 2. Ett simulerat VMA visas för att demonstrera funktionaliteten
@@ -118,7 +135,24 @@ Efter installation dyker en VMA-ikon upp i Edge:s verktygsfält. Som standard ä
 ### Datakällor
 - Tillägget använder Sveriges Radios officiella VMA API för att hämta information:
   - Produktions-API: `https://vmaapi.sr.se/api/v2/alerts`
-  - Test-API: `https://vmaapi.sr.se/testapi/v2/alerts`
+  - Test-API (exempeldata): `https://vmaapi.sr.se/testapi/v2/examples/data`
+
+### Filstruktur
+- `manifest.json` – tilläggets manifest (Manifest V3). Versionsnumret sätts **endast** här
+- `background.js` – service worker: polling, ikon/badge, notifieringar, historik, registrering av varningsbalken
+- `shared/vma-utils.js` – gemensamma hjälpfunktioner (testdetektering, språkval, allvarlighetsgrad, versionsjämförelse)
+- `content/banner.js` – content script för varningsbalken (körs bara om användaren aktiverat funktionen)
+- `popup/` – popup-fönstret, `options/` – inställningssidan
+- `_locales/sv|en/` – översättningar
+
+### Behörigheter
+- `storage`, `alarms`, `notifications`: grundfunktionen
+- `scripting`: krävs för att kunna registrera varningsbalkens content script dynamiskt
+- `https://vmaapi.sr.se/*`: hämta VMA-data
+- `http://*/*`, `https://*/*` (**valfri**, `optional_host_permissions`): begärs endast när användaren aktiverar varningsbalken och tas bort när den stängs av
+
+### Kända brister
+- Ikonen för allvarlighetsgraden "Moderate" (orange) saknas i `icons/`. Koden faller tillbaka på den röda ikonen tills `lamp-orange-16/32/48/128.png` läggs till
 
 ### Språkstöd
 - Från november 2024 tillhandahåller Sveriges Radio engelska översättningar för VMA
@@ -144,7 +178,8 @@ Efter installation dyker en VMA-ikon upp i Edge:s verktygsfält. Som standard ä
 VMA Notifieringar värnar om din integritet:
 - Ingen personlig information samlas in
 - Endast regionval och språkpreferens sparas i webbläsarens synkroniserade lagring
-- VMA-historik och kvitteringsinformation sparas endast lokalt i din webbläsare
+- VMA-historik, kvitteringsinformation och inställningen för varningsbalken sparas endast lokalt i din webbläsare
+- Varningsbalken läser inget innehåll från webbsidorna, den lägger bara till sin egen balk
 - Inga tredjepartsverktyg för analys eller spårning
 - All kommunikation sker via säker HTTPS
 
@@ -167,6 +202,29 @@ Vid frågor eller problem, vänligen öppna ett ärende i GitHub-repositoriet.
 Detta projekt är licensierat under MIT-licensen - se [LICENSE](LICENSE) för detaljer.
 
 ## Changelog
+
+### [1.3.0] - 2026-09-16
+
+#### Tillagda funktioner
+- **Varningsbalk på webbsidor (opt-in)**: Content script i Shadow DOM som visar aktiva VMA överst på http/https-sidor. Aktiveras i inställningarna, kräver valfri host-behörighet som begärs först då
+- **Knappar i balken**: "Visa mer/mindre" och "Dölj" (döljer det VMA:t i alla flikar tills det upphör)
+
+#### Fixade buggar
+- Notifieringar kunde utebli när service workern väcktes av alarmet (en 15-sekunders "browserReady"-spärr blockerade dem)
+- Badge-blinkningen dog när service workern pausades och kunde lämna märket i fel läge. Märket sätts nu alltid till ett statiskt läge först
+- `chrome.action.openPopup()` kunde ge ohanterad promise-rejection vid klick på notifiering
+- Dubblerad nyckel `languageLabel` i svenska språkfilen gjorde att inställningssidan visade "Språk:" i stället för "Föredraget språk:"
+- Testdetektering matchade "test" som delsträng (t.ex. i "protest") och kunde filtrera bort riktiga VMA från historiken. Nu krävs ordgräns
+- Popupen visade allvarlighetsgrad från första `info`-objektet i stället för högsta
+- Inställningssidan följde webbläsarens språk i stället för det valda
+
+#### Tekniska förändringar
+- ES-moduler: `background.js`, `popup.js` och `options.js` importerar från `shared/vma-utils.js`
+- Versionsnumret läses från `manifest.json` via `chrome.runtime.getManifest()`; versionsjämförelse vid migrering med `compareVersions` i stället för `parseFloat`
+- Alarm återskapas om de saknas vid varje uppvaknande
+- `setIconSafe()` med fallback när ikonfiler saknas
+- Talsyntes vid sparande borttagen från inställningssidan (dubbelt mot live region)
+- Zip-filer borttagna ur repot och ignorerade i `.gitignore`; `LICENSE` (MIT) tillagd
 
 ### [1.2.0] - 2025-05-18
 
