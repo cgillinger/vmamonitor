@@ -195,6 +195,14 @@
     host = document.createElement('div');
     host.id = HOST_ID;
     host.setAttribute('lang', 'sv');
+    // The host lives in the page's light DOM, so page CSS applies to it and a
+    // rule like "html > div { display: none }" would hide the whole banner.
+    // Inline !important declarations beat any stylesheet rule.
+    host.style.cssText = 'all: initial !important; display: block !important; ' +
+      'position: fixed !important; top: 0 !important; left: 0 !important; ' +
+      'width: 0 !important; height: 0 !important; overflow: visible !important; ' +
+      'z-index: 2147483647 !important; opacity: 1 !important; visibility: visible !important; ' +
+      'transform: none !important; filter: none !important; clip-path: none !important;';
     shadow = host.attachShadow({ mode: 'closed' });
     (document.documentElement || document.body).appendChild(host);
   }

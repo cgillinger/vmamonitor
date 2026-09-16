@@ -109,7 +109,12 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   await chrome.storage.local.remove('bannerDismissed');
   await setIconSafe('default');
   await ensureAlarms();
-  await syncBannerRegistration();
+
+  // An update or reload kills the content script in every open tab. Re-inject
+  // so the banner does not silently disappear until each tab is reloaded.
+  if (await syncBannerRegistration()) {
+    await injectBannerIntoOpenTabs();
+  }
 
   // Do a first check shortly after install/update so the icon reflects reality.
   setTimeout(safeCheckForAlerts, 2000);
