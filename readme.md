@@ -38,6 +38,8 @@ VMA (Viktigt Meddelande till Allmänheten) är ett varningssystem som används i
 
 ### Version 1.3 (September 2026)
 - **Valfri varningsbalk på webbsidor**: Slå på i inställningarna för att få aktiva VMA som en balk överst på vanliga webbsidor. Kräver behörighet att läsa och ändra webbsidor, som bara begärs om du aktiverar funktionen och tas bort igen när du stänger av den
+- **Kvittering direkt från balken**: Balken har "Visa mer" och "Kvittera VMA", samma kvittering som popupens knapp
+- **Språket följer webbläsaren tills du väljer själv**: Tidigare låstes språket vid installationen, vilket kunde bli fel på en nyskapad profil där språkinställningen inte hunnit slå igenom
 - **Tillförlitligare notifieringar**: Notifieringar visades tidigare inte om webbläsaren väckt tillägget i bakgrunden för en schemalagd kontroll
 - **Stabil ikon och badge**: Märket i verktygsfältet hamnar alltid i ett tydligt läge även om webbläsaren pausar tillägget
 - **Ett versionsnummer**: Versionen hämtas från `manifest.json` överallt, i stället för att vara hårdkodad på fem ställen
@@ -102,8 +104,10 @@ Efter installation dyker en VMA-ikon upp i Edge:s verktygsfält. Som standard ä
 ### Varningsbalk på webbsidor (valfritt):
 1. Öppna inställningar och kryssa i "Visa aktiva VMA som en balk överst på webbsidor"
 2. Godkänn behörighetsfrågan från webbläsaren. Behörigheten behövs eftersom balken läggs in på själva webbsidan
-3. Vid aktivt VMA visas nu en balk överst på alla vanliga webbsidor (http/https). Du kan fälla ut hela texten eller dölja balken för just det VMA:t
+3. Vid aktivt VMA visas nu en balk överst på alla vanliga webbsidor (http/https). Du kan fälla ut hela texten eller kvittera VMA:t direkt från balken
 4. Kryssa ur rutan för att stänga av. Behörigheten tas då bort igen
+
+Observera: webbläsaren frågar bara första gången per profil. När du en gång godkänt behörigheten minns Edge samtycket, så om du stänger av och på funktionen igen beviljas den tyst utan ny fråga.
 
 Begränsningar: balken kan inte visas på webbläsarens egna sidor (ny flik, inställningar, tilläggsbutiken), i PDF-visaren eller i helskärmsläge. Notifieringar och ikonen i verktygsfältet fungerar oavsett.
 
@@ -207,7 +211,7 @@ Detta projekt är licensierat under MIT-licensen - se [LICENSE](LICENSE) för de
 
 #### Tillagda funktioner
 - **Varningsbalk på webbsidor (opt-in)**: Content script i Shadow DOM som visar aktiva VMA överst på http/https-sidor. Aktiveras i inställningarna, kräver valfri host-behörighet som begärs först då
-- **Knappar i balken**: "Visa mer/mindre" och "Dölj" (döljer det VMA:t i alla flikar tills det upphör)
+- **Knappar i balken**: "Visa mer/mindre" och "Kvittera VMA" (samma kvittering som popupens knapp: tystar notifieringen och tar bort balken i alla flikar, ikonen står kvar)
 
 #### Fixade buggar
 - Notifieringar kunde utebli när service workern väcktes av alarmet (en 15-sekunders "browserReady"-spärr blockerade dem)

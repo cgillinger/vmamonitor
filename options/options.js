@@ -1,4 +1,4 @@
-import { getExtensionVersion } from '../shared/vma-utils.js';
+import { getExtensionVersion, resolveLanguage } from '../shared/vma-utils.js';
 
 document.addEventListener('DOMContentLoaded', init);
 
@@ -83,8 +83,8 @@ async function applyLanguage(lang) {
 
 async function init() {
   try {
-    const { preferredLanguage = 'sv' } = await chrome.storage.sync.get(['preferredLanguage']);
-    await applyLanguage(preferredLanguage);
+    const { preferredLanguage } = await chrome.storage.sync.get(['preferredLanguage']);
+    await applyLanguage(resolveLanguage(preferredLanguage));
     await loadSettings();
     await loadBannerState();
     setupEventListeners();
@@ -110,8 +110,8 @@ async function loadSettings() {
     if (settings.geoCode) {
       document.getElementById('region-select').value = settings.geoCode;
     }
-    if (settings.preferredLanguage) {
-      document.getElementById('language-select').value = settings.preferredLanguage;
+    {
+      document.getElementById('language-select').value = resolveLanguage(settings.preferredLanguage);
     }
   } catch (error) {
     logger.error('Error loading settings:', error);

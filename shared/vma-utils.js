@@ -110,3 +110,12 @@ export function compareVersions(a, b) {
 export function getExtensionVersion() {
   return chrome.runtime.getManifest().version;
 }
+
+// The language setting is only stored once the user picks one. Until then the
+// browser's UI language decides, resolved at read time. Writing a default at
+// install time locked in the wrong language on a fresh profile, where the
+// locale is not always applied yet when the extension first runs.
+export function resolveLanguage(stored) {
+  if (stored === 'sv' || stored === 'en') return stored;
+  return chrome.i18n.getUILanguage().startsWith('en') ? 'en' : 'sv';
+}

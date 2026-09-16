@@ -1,4 +1,4 @@
-import { isTestAlert, findBestMatchingInfo, isSevereAlert, getAlertSeverity, getExtensionVersion } from '../shared/vma-utils.js';
+import { isTestAlert, findBestMatchingInfo, isSevereAlert, getAlertSeverity, getExtensionVersion, resolveLanguage } from '../shared/vma-utils.js';
 
 document.addEventListener('DOMContentLoaded', init);
 
@@ -47,7 +47,7 @@ async function init() {
     // Load language preference
     const settings = await chrome.storage.sync.get(['testMode', 'preferredLanguage']);
     testMode = settings.testMode || false;
-    currentLanguage = settings.preferredLanguage || 'sv';
+    currentLanguage = resolveLanguage(settings.preferredLanguage);
     
     // Setup event listeners first so language toggle works immediately
     setupEventListeners();
@@ -326,7 +326,8 @@ function showHistoryTab() {
 async function loadAlerts() {
   try {
     const { activeAlerts } = await chrome.storage.local.get(['activeAlerts']);
-    const { preferredLanguage = 'sv' } = await chrome.storage.sync.get(['preferredLanguage']);
+    const { preferredLanguage: storedLanguage } = await chrome.storage.sync.get(['preferredLanguage']);
+    const preferredLanguage = resolveLanguage(storedLanguage);
     
     // Update UI language if necessary
     if (currentLanguage !== preferredLanguage) {
@@ -408,7 +409,8 @@ async function loadVmaHistory() {
   
   try {
     const { vmaHistory = [] } = await chrome.storage.local.get(['vmaHistory']);
-    const { preferredLanguage = 'sv' } = await chrome.storage.sync.get(['preferredLanguage']);
+    const { preferredLanguage: storedLanguage } = await chrome.storage.sync.get(['preferredLanguage']);
+    const preferredLanguage = resolveLanguage(storedLanguage);
     
     // Filtrera bort test-VMA från vyn även om de av någon anledning hamnat i lagringen
     const filteredHistory = vmaHistory.filter(alert => !isTestAlert(alert));

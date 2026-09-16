@@ -59,25 +59,25 @@
         <div class="info-text" id="interval-info" data-i18n="intervalInfo">VMA-API:et kontrolleras var 5:e minut</div>
       </div>
       
+      <section class="banner-section" aria-labelledby="banner-title">
+        <h2 id="banner-title" data-i18n="bannerSectionTitle">Varningsbalk på webbsidor</h2>
+        <div class="option-group">
+          <label class="checkbox-label" for="banner-toggle">
+            <input type="checkbox" id="banner-toggle" aria-describedby="banner-hint banner-instant">
+            <span data-i18n="bannerLabel">Visa aktiva VMA som en balk överst på webbsidor</span>
+          </label>
+          <p id="banner-hint" class="hint" data-i18n="bannerHint">Valfritt. Kräver att tillägget får läsa och ändra webbsidor du besöker, eftersom balken läggs in på själva sidan. Behörigheten används enbart för att visa balken. Balken kan inte visas på webbläsarens egna sidor (t.ex. ny flik eller inställningar) eller i helskärmsläge. Ikonen och notifieringarna fungerar som vanligt oavsett.</p>
+          <p id="banner-instant" class="instant-note" data-i18n="settingsSavedInstantly">Sparas direkt</p>
+          <div id="banner-status" class="hidden"></div>
+        </div>
+      </section>
+
       <div class="actions">
         <button id="save-btn" type="button" aria-describedby="save-help" data-i18n="saveButton">Spara inställningar</button>
         <div id="status" class="hidden"></div>
       </div>
     </form>
 
-    <section class="options-form banner-section" aria-labelledby="banner-title">
-      <h2 id="banner-title" data-i18n="bannerSectionTitle">Varningsbalk på webbsidor</h2>
-      <div class="option-group">
-        <label class="checkbox-label" for="banner-toggle">
-          <input type="checkbox" id="banner-toggle" aria-describedby="banner-hint banner-instant">
-          <span data-i18n="bannerLabel">Visa aktiva VMA som en balk överst på webbsidor</span>
-        </label>
-        <p id="banner-hint" class="hint" data-i18n="bannerHint">Valfritt. Kräver att tillägget får läsa och ändra webbsidor du besöker, eftersom balken läggs in på själva sidan. Behörigheten används enbart för att visa balken. Balken kan inte visas på webbläsarens egna sidor (t.ex. ny flik eller inställningar) eller i helskärmsläge. Ikonen och notifieringarna fungerar som vanligt oavsett.</p>
-        <p id="banner-instant" class="instant-note" data-i18n="settingsSavedInstantly">Sparas direkt</p>
-        <div id="banner-status" class="hidden"></div>
-      </div>
-    </section>
-    
     <section class="what-is-new" aria-labelledby="whats-new-title">
       <h2 id="whats-new-title">Nyheter i version</h2>
       <ul id="whats-new-list"></ul>

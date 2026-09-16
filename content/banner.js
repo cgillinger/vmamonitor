@@ -48,6 +48,13 @@
   const SEVERITY_RANK = { Unknown: 0, Minor: 1, Moderate: 2, Severe: 3, Extreme: 4 };
   const TEST_WORD = /\btest/i;
 
+  // Kopia av resolveLanguage() i shared/vma-utils.js - content scripts kan inte
+  // importera moduler. Ett osatt språk betyder "följ webbläsaren".
+  function resolveLanguage(stored) {
+    if (stored === 'sv' || stored === 'en') return stored;
+    return chrome.i18n.getUILanguage().startsWith('en') ? 'en' : 'sv';
+  }
+
   function isTestAlert(alert) {
     if (!alert) return false;
     if (alert.status === 'Test') return true;
@@ -89,17 +96,22 @@
     :host { all: initial; }
     .bar {
       position: fixed;
-      top: 0; left: 0; right: 0;
+      top: 10px; left: 10px; right: 10px;
       z-index: 2147483647;
       box-sizing: border-box;
-      width: 100%;
-      max-height: 60vh;
+      max-width: 1100px;
+      margin: 0 auto;
+      max-height: calc(60vh - 20px);
       overflow-y: auto;
+      border-radius: 14px;
       font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
       color: #fff;
       background: #c00000;
-      box-shadow: 0 2px 8px rgba(0,0,0,.35);
-      padding: 8px 12px;
+      box-shadow:
+        0 12px 32px rgba(0,0,0,.30),
+        0 2px 8px rgba(0,0,0,.22),
+        inset 0 1px 0 rgba(255,255,255,.18);
+      padding: 10px 14px;
       direction: ltr;
       text-align: left;
     }
@@ -151,11 +163,21 @@
     button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
     .minor button:focus-visible { outline-color: #000; }
     .source { font-size: 11px; opacity: .8; margin: 6px 0 0; text-align: right; max-width: 1200px; margin-left: auto; margin-right: auto; }
+    /* Entrén spelas bara vid första renderingen (klassen 'enter'), så att
+       "Visa mer" inte startar om animationen varje gång innehållet byggs om. */
     @media (prefers-reduced-motion: no-preference) {
-      .bar { animation: vma-slide .25s ease-out; }
-      @keyframes vma-slide { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+      .bar.enter {
+        transform-origin: top center;
+        animation: vma-pop .42s cubic-bezier(.22, 1.2, .36, 1) both;
+      }
+      @keyframes vma-pop {
+        0%   { opacity: 0; transform: translateY(-14px) scale(.90); }
+        55%  { opacity: 1; }
+        100% { opacity: 1; transform: translateY(0) scale(1); }
+      }
     }
     @media (max-width: 600px) {
+      .bar { top: 6px; left: 6px; right: 6px; border-radius: 12px; }
       .row { flex-wrap: wrap; }
       .actions { width: 100%; justify-content: flex-end; }
     }
@@ -198,16 +220,17 @@
     style.textContent = CSS;
     shadow.appendChild(style);
 
+    const firstRender = !announced;
     const bar = document.createElement('div');
-    bar.className = 'bar ' + severityClass(alerts);
-    if (announced) {
-      bar.setAttribute('role', 'region');
-      bar.setAttribute('aria-label', t.label);
-    } else {
+    bar.className = 'bar ' + severityClass(alerts) + (firstRender ? ' enter' : '');
+    if (firstRender) {
       bar.setAttribute('role', 'alert');
       bar.setAttribute('aria-live', 'assertive');
       bar.setAttribute('aria-atomic', 'true');
       announced = true;
+    } else {
+      bar.setAttribute('role', 'region');
+      bar.setAttribute('aria-label', t.label);
     }
 
     const row = document.createElement('div');
@@ -303,9 +326,9 @@
 
   async function refresh() {
     try {
-      const [{ activeAlerts = [], silentMode = false, bannerDismissed = [], bannerEnabled = false },
-             { preferredLanguage = 'sv' }] = await Promise.all([
-        chrome.storage.local.get(['activeAlerts', 'silentMode', 'bannerDismissed', 'bannerEnabled']),
+      const [{ activeAlerts = [], silentMode = false, bannerEnabled = false },
+             { preferredLanguage }] = await Promise.all([
+        chrome.storage.local.get(['activeAlerts', 'silentMode', 'bannerEnabled']),
         chrome.storage.sync.get(['preferredLanguage'])
       ]);
 
@@ -314,17 +337,14 @@
         return;
       }
 
-      const dismissed = new Set(bannerDismissed);
-      const visible = activeAlerts.filter(a =>
-        a && a.msgType === 'Alert' && !dismissed.has(a.identifier)
-      );
+      const visible = activeAlerts.filter(a => a && a.msgType === 'Alert');
 
       if (visible.length === 0) {
         removeBanner();
         return;
       }
 
-      render(visible, preferredLanguage);
+      render(visible, resolveLanguage(preferredLanguage));
     } catch {
       // Extension context invalidated (extension updated/reloaded). Clean up.
       removeBanner();
@@ -335,7 +355,7 @@
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area === 'local' &&
           ('activeAlerts' in changes || 'silentMode' in changes ||
-           'bannerDismissed' in changes || 'bannerEnabled' in changes)) {
+           'bannerEnabled' in changes)) {
         refresh();
       } else if (area === 'sync' && 'preferredLanguage' in changes) {
         refresh();

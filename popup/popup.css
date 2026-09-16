@@ -217,6 +217,10 @@ footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  /* Med båda knapparna synliga får statusen för lite plats på 350 px och
+     bryts mitt i "Aktiv VMA". Låt den i stället flytta ner på egen rad. */
+  flex-wrap: wrap;
+  gap: 6px 10px;
   padding: 10px 15px;
   background-color: #f1f1f1;
   border-top: 1px solid #ddd;
@@ -225,6 +229,7 @@ footer {
 .footer-buttons {
   display: flex;
   gap: 8px;
+  flex: 0 1 auto;
 }
 
 .footer-buttons button {
@@ -239,6 +244,7 @@ footer {
   display: flex;
   align-items: center;
   justify-content: center;
+  white-space: nowrap;
 }
 
 #test-mode-btn {
@@ -260,6 +266,10 @@ footer {
 .status {
   font-size: 12px;
   color: #666;
+  /* Hålls ihop på en rad; footern radbryter hellre än att klämma texten. */
+  white-space: nowrap;
+  flex: 0 0 auto;
+  margin-left: auto;
 }
 
 #status-text {

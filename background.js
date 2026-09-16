@@ -6,7 +6,8 @@ import {
   stripAckTimestamp,
   determineIconType,
   compareVersions,
-  getExtensionVersion
+  getExtensionVersion,
+  resolveLanguage
 } from './shared/vma-utils.js';
 
 // Constants
@@ -104,6 +105,9 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   }
 
   await setDefaultOptions();
+  // bannerDismissed belonged to the banner's old "Dölj" button, which is now
+  // "Kvittera VMA". Leftover ids would keep filtering those alerts out forever.
+  await chrome.storage.local.remove('bannerDismissed');
   await setIconSafe('default');
   await ensureAlarms();
   await syncBannerRegistration();
@@ -125,15 +129,11 @@ chrome.runtime.onStartup.addListener(() => {
 ensureAlarms();
 
 async function setDefaultOptions() {
-  const result = await chrome.storage.sync.get(['geoCode', 'testMode', 'preferredLanguage']);
+  const result = await chrome.storage.sync.get(['geoCode', 'testMode']);
   const updates = {};
   if (!result.geoCode) updates.geoCode = '00'; // Default to all Sweden
   if (result.testMode === undefined) updates.testMode = false;
-  if (result.preferredLanguage === undefined) {
-    const browserLang = chrome.i18n.getUILanguage();
-    updates.preferredLanguage = browserLang.startsWith('en') ? 'en' : 'sv';
-    logger.important(`Setting default language to: ${updates.preferredLanguage} based on browser UI ${browserLang}`);
-  }
+  // preferredLanguage is deliberately not defaulted here - see resolveLanguage().
   if (Object.keys(updates).length > 0) {
     await chrome.storage.sync.set(updates);
   }
@@ -152,19 +152,13 @@ async function performMigration(previousVersion) {
   try {
     if (compareVersions(previousVersion, '1.1') < 0) {
       logger.important('Performing migration to v1.1 (adding language support)');
-      const { preferredLanguage } = await chrome.storage.sync.get(['preferredLanguage']);
-      if (preferredLanguage === undefined) {
-        const browserLang = chrome.i18n.getUILanguage();
-        const newPreferredLanguage = browserLang.startsWith('en') ? 'en' : 'sv';
-        await chrome.storage.sync.set({ preferredLanguage: newPreferredLanguage });
-        logger.important(`Migration: Added preferredLanguage setting: ${newPreferredLanguage}`);
-      }
+      // Nothing to write: an unset language now means "follow the browser".
     }
 
     if (compareVersions(previousVersion, '1.3') < 0) {
       logger.important('Performing migration to v1.3 (page banner setting)');
       // Banner is opt-in and off by default; nothing else to migrate.
-      await chrome.storage.local.set({ bannerEnabled: false, bannerDismissed: [] });
+      await chrome.storage.local.set({ bannerEnabled: false });
     }
   } catch (error) {
     logger.error('Error during migration', error);
@@ -309,8 +303,8 @@ async function createVMANotification(alert, iconType) {
   if (!alert || !alert.info || alert.info.length === 0) return;
 
   try {
-    const { preferredLanguage = 'sv' } = await chrome.storage.sync.get(['preferredLanguage']);
-    const { info } = findBestMatchingInfo(alert.info, preferredLanguage);
+    const { preferredLanguage } = await chrome.storage.sync.get(['preferredLanguage']);
+    const { info } = findBestMatchingInfo(alert.info, resolveLanguage(preferredLanguage));
 
     const title = info.event || chrome.i18n.getMessage('notificationTitle');
     let message = info.description || chrome.i18n.getMessage('noDetailedInfo');
@@ -523,19 +517,15 @@ async function processAlerts(alerts, isTestMode) {
   }
 
   if (activeAlerts.length === 0) {
-    await chrome.storage.local.set({ activeAlerts: [], silentMode: false, bannerDismissed: [] });
+    await chrome.storage.local.set({ activeAlerts: [], silentMode: false });
     await setIconSafe('default');
     updateBadge('default');
     return;
   }
 
-  // Drop banner dismissals for alerts that are no longer active
-  const { bannerDismissed = [], silentMode = false } =
-    await chrome.storage.local.get(['bannerDismissed', 'silentMode']);
-  const activeIds = new Set(activeAlerts.map(a => a.identifier));
-  const stillDismissed = bannerDismissed.filter(id => activeIds.has(id));
+  const { silentMode = false } = await chrome.storage.local.get(['silentMode']);
 
-  await chrome.storage.local.set({ activeAlerts, bannerDismissed: stillDismissed });
+  await chrome.storage.local.set({ activeAlerts });
 
   const iconType = determineIconType(activeAlerts);
   await setIconSafe(iconType);
@@ -721,8 +711,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // larmen markeras som kvitterade och tyst läge slås på, vilket får balken att
 // försvinna i alla flikar via storage-ändringen.
 async function acknowledgeAlerts(identifiers) {
-  const { activeAlerts = [], acknowledgedAlerts = [], bannerDismissed = [] } =
-    await chrome.storage.local.get(['activeAlerts', 'acknowledgedAlerts', 'bannerDismissed']);
+  const { activeAlerts = [], acknowledgedAlerts = [] } =
+    await chrome.storage.local.get(['activeAlerts', 'acknowledgedAlerts']);
 
   // Kvittera de larm balken faktiskt visade, annars alla aktiva.
   const wanted = identifiers.length > 0
@@ -736,9 +726,7 @@ async function acknowledgeAlerts(identifiers) {
     .map(alert => `${alert.identifier}::${now}`);
 
   await chrome.storage.local.set({
-    acknowledgedAlerts: [...acknowledgedAlerts, ...additions],
-    // Håll balken borta för just de här larmen även om tyst läge nollställs.
-    bannerDismissed: Array.from(new Set([...bannerDismissed, ...wanted]))
+    acknowledgedAlerts: [...acknowledgedAlerts, ...additions]
   });
 
   await enableSilentMode();

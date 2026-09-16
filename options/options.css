@@ -405,8 +405,13 @@ button:focus {
   }
 }
 /* Banner (opt-in) section */
+/* Ligger nu inne i formuläret, ovanför spara-knappen. Avdelaren visar att det
+   är en egen grupp, medan "Sparas direkt" säger att den inte behöver sparas. */
 .banner-section {
   border-radius: 12px;
+  border-top: 1px solid #e9ecef;
+  padding-top: 25px;
+  margin-bottom: 25px;
 }
 
 .banner-section h2 {
